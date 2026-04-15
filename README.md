@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Remittances MVP - Digital Money Transfer Platform
 
-## Getting Started
+A modern, Revolut-inspired frontend for cross-border money transfers built with Next.js 14, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## 🎯 Features
+
+- **P2P Wallet Transfers** - Send money to other users instantly
+- **SEPA Deposits** - Add funds via bank transfer (EUR)
+- **Transaction History** - Track all your transfers and deposits
+- **Bank Account Management** - Register your IBAN for deposits
+- **API Key Authentication** - Secure, token-based access
+- **Professional UI** - Enterprise-grade design inspired by Revolut
+- **Mobile Responsive** - Works seamlessly on all devices
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **Components**: shadcn/ui
+- **State**: Zustand + React Query
+- **Forms**: React Hook Form + Zod
+- **Deployment**: Vercel
+
+## 🚀 Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Setup environment
+cp .env.example .env.local
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and use API key: `rem-test-key-spain-001`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📚 Documentation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **`FRONTEND_SETUP.md`** - Complete implementation guide with code examples
+- **`SETUP_NEXT_STEPS.md`** - Development roadmap and component checklist
 
-## Learn More
+## 🚀 Implementation Status
 
-To learn more about Next.js, take a look at the following resources:
+✅ Next.js 14 + TypeScript + Tailwind CSS
+✅ shadcn/ui components installed
+✅ Dependencies: axios, zustand, react-query, zod, react-hook-form
+✅ Directory structure created
+⏳ Components to be implemented following `SETUP_NEXT_STEPS.md`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📦 Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev              # Start dev server
+npm run build            # Build for production
+npm run start            # Start production server
+npm run lint             # Lint code
+```
 
-## Deploy on Vercel
+## 🔗 Backend
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Connects to: `http://localhost:3001/api` (configurable in `.env.local`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+**Ready for enterprise-grade frontend implementation! 🚀**
