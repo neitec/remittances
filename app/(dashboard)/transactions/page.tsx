@@ -20,8 +20,14 @@ export default function TransactionsPage() {
     type: filterType,
   });
 
-  const transactions = data?.pages.flatMap((p) => p.transactions) ?? [];
-  const detailTxn = selectedTxn ? transactions.find(t => t.id === selectedTxn) : null;
+  const allTransactions = data?.pages.flatMap((p) => p.transactions) ?? [];
+
+  // Filter transactions by selected type (frontend validation)
+  const transactions = filterType === "all"
+    ? allTransactions
+    : allTransactions.filter(t => t.type === filterType);
+
+  const detailTxn = selectedTxn ? allTransactions.find(t => t.id === selectedTxn) : null;
 
   return (
     <div className="min-h-screen bg-brand-white pb-4">

@@ -50,7 +50,15 @@ export interface Beneficiary {
 }
 
 export interface DepositInstruction {
-  depositInstructions: string; // SEPA instructions
+  payment_rail: string; // "sepa"
+  currency: string; // "EUR"
+  amount: string; // "0.0"
+  deposit_message: string; // Reference number (e.g., "BRGXZ4GT9SCANM4325P3")
+  iban: string;
+  bic: string;
+  account_holder_name: string;
+  bank_name: string;
+  bank_address: string;
 }
 
 export interface TransferRequest {

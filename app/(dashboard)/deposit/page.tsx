@@ -332,17 +332,17 @@ export default function DepositPage() {
 
                 <div>
                   <p className="text-xs text-brand-navy/60 uppercase tracking-wide font-semibold mb-2">
-                    Referencia
+                    Referencia (Concepto)
                   </p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 bg-brand-sand/10 px-3 py-3 rounded font-mono text-sm text-brand-navy font-bold">
-                      {(depositInstruction as any)?.reference || ""}
+                    <code className="flex-1 bg-brand-sand/10 px-3 py-3 rounded font-mono text-sm text-brand-navy font-bold break-all">
+                      {(depositInstruction as any)?.deposit_message || ""}
                     </code>
                     <Button
                       size="icon"
                       variant="outline"
                       onClick={() =>
-                        copyToClipboard((depositInstruction as any)?.reference || "")
+                        copyToClipboard((depositInstruction as any)?.deposit_message || "")
                       }
                       className="flex-shrink-0"
                     >

@@ -24,5 +24,10 @@ export default function AuthLayout({
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // Show nothing while loading
+  if (isLoading) {
+    return null;
+  }
+
   return <>{children}</>;
 }

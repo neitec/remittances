@@ -37,6 +37,13 @@ export { TransactionType };
 // ============ API FUNCTIONS ============
 // All APIs now use Auth0 JWT authentication via Bearer token (injected by axios interceptor)
 
+export const userAPI = {
+  getMe: async (): Promise<{ id: string; email: string; phone: string; country: string }> => {
+    const response = await apiClient.get("/remittance/me");
+    return response.data;
+  },
+};
+
 export const accountsAPI = {
   getAccounts: async (): Promise<DashboardData> => {
     const response = await apiClient.get("/remittance/accounts");

@@ -15,9 +15,9 @@ import { apiClient } from "@/lib/api";
 function Auth0Wrapper({ children }: { children: ReactNode }) {
   const auth0ClientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
 
-  // If Auth0 not configured, skip Auth0Provider
+  // Auth0 is required
   if (!auth0ClientId) {
-    return children;
+    throw new Error("NEXT_PUBLIC_AUTH0_CLIENT_ID is not configured. Auth0 is required.");
   }
 
   return (
@@ -41,14 +41,15 @@ function Auth0Wrapper({ children }: { children: ReactNode }) {
  * This component registers the axios interceptor to inject Auth0 JWT tokens
  */
 function Auth0Interceptor({ children }: { children: ReactNode }) {
-  const { getAccessTokenSilently, isAuthenticated, isLoading } = useAuth0();
+  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
   useEffect(() => {
     // Register interceptor to inject Bearer token from Auth0
     const interceptorId = apiClient.interceptors.request.use(
       async (config) => {
-        // Only inject Bearer token if Auth0 is authenticated
-        if (isAuthenticated && !isLoading) {
+        // Inject Bearer token if Auth0 is authenticated
+        // Note: getAccessTokenSilently() handles loading state internally
+        if (isAuthenticated) {
           try {
             const token = await getAccessTokenSilently({
               authorizationParams: {
@@ -57,11 +58,12 @@ function Auth0Interceptor({ children }: { children: ReactNode }) {
             });
             if (token) {
               config.headers.Authorization = `Bearer ${token}`;
-              console.log("[Auth0] Token injected successfully");
             }
           } catch (error) {
-            console.error("[Auth0] Failed to get token:", error instanceof Error ? error.message : error);
+            console.error("[Auth0] ❌ Failed to get token:", error instanceof Error ? error.message : error);
           }
+        } else {
+          console.debug("[Auth0] ⏳ Not authenticated yet, skipping token injection for:", config.url);
         }
         return config;
       },
@@ -71,7 +73,7 @@ function Auth0Interceptor({ children }: { children: ReactNode }) {
     return () => {
       apiClient.interceptors.request.eject(interceptorId);
     };
-  }, [isAuthenticated, isLoading, getAccessTokenSilently]);
+  }, [isAuthenticated, getAccessTokenSilently]);
 
   return children;
 }
