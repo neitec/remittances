@@ -29,10 +29,10 @@ export default function TransactionsPage() {
   const detailTxn = selectedTxn ? allTransactions.find(t => t.id === selectedTxn) : null;
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] pb-32">
+    <div className="min-h-screen bg-[var(--color-background)] pb-32 lg:pb-0">
       {/* TopAppBar */}
       <motion.header
-        className="fixed top-0 left-0 right-0 z-40 h-16 flex items-center gap-4 px-6 bg-[rgba(248,249,250,0.7)] backdrop-blur-[48px]"
+        className="fixed top-0 left-0 right-0 lg:left-64 z-40 h-16 flex items-center gap-4 px-6 bg-[rgba(248,249,250,0.7)] backdrop-blur-[48px]"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
@@ -188,7 +188,7 @@ export default function TransactionsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 400 }}
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="fixed top-0 right-0 bottom-0 w-full sm:w-96 bg-[var(--color-background)] z-50 overflow-y-auto shadow-xl"
+                className="fixed top-0 right-0 bottom-0 w-full sm:w-[calc(100%-3rem)] md:w-96 bg-[var(--color-background)] z-50 overflow-y-auto shadow-xl pb-safe"
               >
                 <div className="sticky top-0 bg-[var(--color-background)] z-10 flex items-center justify-between p-6 border-b border-[var(--color-outline-variant)]/10">
                   <h3 className="text-xl font-manrope font-bold text-[var(--color-on-surface)]">

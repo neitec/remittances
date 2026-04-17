@@ -13,6 +13,8 @@ import {
   DepositRequest,
   AddExternalAccountRequest,
   TransactionFilters,
+  User,
+  UpdateAliasRequest,
 } from "@/lib/types";
 
 // ============ RE-EXPORT TYPES ============
@@ -31,6 +33,8 @@ export type {
   DepositRequest,
   AddExternalAccountRequest,
   TransactionFilters,
+  User,
+  UpdateAliasRequest,
 };
 export { TransactionType };
 
@@ -38,8 +42,13 @@ export { TransactionType };
 // All APIs now use Auth0 JWT authentication via Bearer token (injected by axios interceptor)
 
 export const userAPI = {
-  getMe: async (): Promise<{ id: string; email: string; phone: string; country: string }> => {
+  getMe: async (): Promise<User> => {
     const response = await apiClient.get("/remittance/me");
+    return response.data;
+  },
+
+  updateAlias: async (alias: string): Promise<User> => {
+    const response = await apiClient.post("/remittance/me/alias", { alias });
     return response.data;
   },
 };
@@ -78,8 +87,13 @@ export const transferAPI = {
     return response.data;
   },
 
-  send: async (beneficiaryPhone: string, amount: string): Promise<TransferResult> => {
-    const response = await apiClient.post("/remittance/transfer", { beneficiaryPhone, amount });
+  send: async (data: TransferRequest): Promise<TransferResult> => {
+    const response = await apiClient.post("/remittance/transfer", {
+      amount: data.amount,
+      beneficiaryPhone: data.beneficiaryPhone,
+      userAlias: data.userAlias,
+      reference: data.reference,
+    });
     return response.data;
   },
 };
@@ -92,18 +106,21 @@ export const transactionsAPI = {
     }
     if (filters?.startDate) params.append("startDate", filters.startDate);
     if (filters?.endDate) params.append("endDate", filters.endDate);
+    const PAGE_SIZE = 20;
     params.append("page", String(filters?.page || 1));
 
     const response = await apiClient.get(`/remittance/transactions?${params}`);
     const data: Transaction[] = response.data;
     const page = filters?.page || 1;
+    const pageSize = PAGE_SIZE;
+    const hasMore = data.length === PAGE_SIZE;
 
     return {
       transactions: data,
       page,
-      pageSize: data.length,
+      pageSize,
       total: data.length,
-      hasMore: false,
+      hasMore,
       nextPage: page + 1,
     };
   },

@@ -110,7 +110,7 @@ export default function SendPage() {
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* TopAppBar */}
       <motion.header
-        className="fixed top-0 left-0 right-0 z-40 h-16 flex items-center gap-4 px-6 bg-[rgba(248,249,250,0.7)] backdrop-blur-[48px]"
+        className="fixed top-0 left-0 right-0 lg:left-64 z-40 h-16 flex items-center gap-4 px-6 bg-[rgba(248,249,250,0.7)] backdrop-blur-[48px]"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
@@ -155,7 +155,7 @@ export default function SendPage() {
       </motion.header>
 
       {/* Main content */}
-      <main className="pt-24 px-6 pb-32 max-w-2xl mx-auto">
+      <main className="pt-24 px-6 pb-32 lg:pb-0 max-w-2xl mx-auto">
         <AnimatePresence mode="wait">
           {/* No balance state */}
           {!hasBalance && step === 1 && (

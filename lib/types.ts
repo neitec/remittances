@@ -23,12 +23,28 @@ export enum TransactionType {
   TRANSFER = "TRANSFER",
 }
 
+export interface Account {
+  id: string;
+  currency: string;
+  balance: string;
+  userId: string;
+}
+
 export interface Transaction {
   id: string;
   type: string; // "DEPOSIT" | "TRANSFER" (uppercase)
   status: string; // "PENDING" | "COMPLETED" | "FAILED"
+  sourceAccount?: Account | null;
+  destinationAccount?: Account | null;
   amount: string;
   currency: string;
+  reference?: string;
+  externalAccount?: {
+    id: string;
+    accountNumber: string; // Masked
+    bankName: string;
+    currency: string;
+  } | null;
   createdAt: string;
 }
 
@@ -41,13 +57,17 @@ export interface PaginatedTransactions {
   nextPage: number;
 }
 
-export interface Beneficiary {
+export interface User {
   id: string;
+  email: string;
   phone: string;
   name: string;
+  surname: string;
+  alias?: string | null;
   country: string;
-  email: string;
 }
+
+export interface Beneficiary extends User {}
 
 export interface DepositInstruction {
   payment_rail: string; // "sepa"
@@ -62,8 +82,10 @@ export interface DepositInstruction {
 }
 
 export interface TransferRequest {
-  beneficiaryPhone: string;
   amount: string;
+  beneficiaryPhone?: string;
+  userAlias?: string;
+  reference?: string;
 }
 
 export interface TransferResult {
@@ -87,4 +109,8 @@ export interface TransactionFilters {
   startDate?: string;
   endDate?: string;
   page?: number;
+}
+
+export interface UpdateAliasRequest {
+  alias: string;
 }

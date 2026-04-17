@@ -83,7 +83,7 @@ export default function DepositPage() {
     <div className="min-h-screen bg-[var(--color-background)]">
       <TopAppBar title="Depositar" onBack={() => (step === 1 ? undefined : setStep(Math.max(1, step - 1) as Step))} />
 
-      <main className="pt-24 pb-20 px-6 max-w-md mx-auto">
+      <main className="pt-24 pb-24 lg:pb-0 px-6 max-w-md mx-auto">
         <AnimatePresence mode="wait">
           {/* Step 1: Select Deposit Method */}
           {step === 1 && (
@@ -232,7 +232,7 @@ export default function DepositPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6 pb-40"
+              className="space-y-6 pb-28 lg:pb-6"
             >
               {selectedAccountData && (
                 <div
@@ -302,7 +302,7 @@ export default function DepositPage() {
           {/* Step 3: Fixed bottom action bar */}
           {step === 3 && (
             <div
-              className="fixed bottom-0 left-0 right-0 lg:left-64 px-6 pt-4 pb-10 z-40"
+              className="fixed bottom-0 left-0 right-0 lg:left-64 px-6 pt-4 pb-24 lg:pb-10 z-40 pb-safe"
               style={{
                 background: "linear-gradient(to top, var(--color-background), transparent)",
               }}
@@ -325,121 +325,151 @@ export default function DepositPage() {
             </div>
           )}
 
-          {/* Step 4: SEPA Instructions */}
+          {/* Step 4: SEPA Instructions - Redesigned */}
           {step === 4 && depositInstruction && (
             <motion.div
               key="step4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className="space-y-6 pb-28 lg:pb-6"
             >
-              <div>
-                <h2 className="font-manrope font-extrabold text-3xl text-[var(--color-on-surface)] tracking-tight">
-                  Detalles del depósito
+              {/* Header */}
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 rounded-full bg-[var(--color-success)]/10 flex items-center justify-center mx-auto">
+                  <Icon name="check_circle" size={32} className="text-[var(--color-success)]" filled />
+                </div>
+                <h2 className="font-manrope font-bold text-2xl text-[var(--color-on-surface)]">
+                  Detalles de tu transferencia
                 </h2>
-                <p className="text-[var(--color-on-surface-variant)] mt-2 font-inter">
-                  Utilice estos datos para realizar su transferencia SEPA desde su banco.
+                <p className="text-sm text-[var(--color-on-surface-variant)] font-inter">
+                  Completa esta transferencia SEPA desde tu banco
                 </p>
               </div>
 
-              {/* Reference ID Card - DEP7: decorative info icon */}
-              <GlassCard className="relative">
-                {/* DEP7: Large info icon as background decoration */}
-                <Icon
-                  name="info"
-                  size={120}
-                  className="absolute -right-10 -bottom-10 opacity-5 pointer-events-none"
-                />
-                <div className="space-y-4 relative z-10">
-                  <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest">
-                    REFERENCE ID (REQUIRED)
-                  </p>
-                  <h3 className="font-manrope font-extrabold text-3xl text-[var(--color-on-surface)] tracking-tight">
-                    {(depositInstruction as any)?.deposit_message || ""}
-                  </h3>
+              {/* Reference ID - Highlighted Card */}
+              <div className="rounded-3xl p-6 border-2 border-[var(--color-primary)] bg-[var(--color-primary)]/5">
+                <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-3">
+                  📋 Código de referencia (OBLIGATORIO)
+                </p>
+                <div className="space-y-4">
+                  <div className="bg-white dark:bg-[var(--color-surface-container-highest)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/30">
+                    <p className="font-manrope font-extrabold text-2xl text-[var(--color-primary)] text-center font-mono">
+                      {(depositInstruction as any)?.deposit_message || ""}
+                    </p>
+                  </div>
                   <button
                     onClick={() => copyToClipboard((depositInstruction as any)?.deposit_message || "")}
-                    className="flex items-center gap-2 text-[var(--color-primary)] font-inter font-bold text-sm hover:opacity-80"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 text-[var(--color-primary)] font-inter font-bold text-sm transition-colors"
                   >
                     <Icon name="content_copy" size={18} />
-                    Copiar
+                    Copiar código
                   </button>
-                  {/* DEP7: "obligatorio" in red */}
-                  <p className="text-sm text-[var(--color-on-surface-variant)] font-inter">
-                    Es <span className="text-[var(--color-error)] font-bold">obligatorio</span> incluir este código en el concepto de su transferencia.
+                  <p className="text-xs text-[var(--color-on-surface-variant)] font-inter text-center">
+                    Incluye este código en el <span className="font-bold">concepto</span> de la transferencia
                   </p>
                 </div>
-              </GlassCard>
+              </div>
 
-              {/* Bank Details - DEP9: Add "REMITA GLOBAL LTD." label */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest">
-                    Datos Bancarios
-                  </p>
-                  <p className="text-xs text-[var(--color-on-surface)] font-inter font-bold opacity-70">
-                    REMITA GLOBAL LTD.
-                  </p>
-                </div>
-                <div className="space-y-2">
+              {/* Bank Details - Grid */}
+              <div className="space-y-3">
+                <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest px-1">
+                  🏦 Datos bancarios
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { label: "Nombre del Beneficiario", value: "Remita Inc." },
-                    { label: "IBAN", value: (depositInstruction as any)?.iban || "" },
-                    { label: "BIC/SWIFT", value: (depositInstruction as any)?.bic || "" },
-                    { label: "Dirección", value: "Calle de Alcalá, 1, 28014 Madrid, España" },
+                    { label: "Beneficiario", value: "Remita Inc.", icon: "person" },
+                    { label: "Empresa", value: "Remita Global LTD", icon: "business" },
+                    { label: "IBAN", value: (depositInstruction as any)?.iban || "", icon: "credit_card" },
+                    { label: "BIC/SWIFT", value: (depositInstruction as any)?.bic || "", icon: "swap_horiz" },
                   ].map((field, idx) => (
-                  <div
-                    key={idx}
-                    className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] hover:bg-[var(--color-surface-container-low)] transition-colors group cursor-pointer"
-                    style={{ boxShadow: "var(--shadow-card)" }}
-                  >
-                    <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-1">
-                      {field.label}
-                    </p>
-                    <p className="text-[var(--color-on-surface)] font-inter font-medium break-all">{field.value}</p>
-                    <button
-                      onClick={() => copyToClipboard(field.value)}
-                      className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[var(--color-primary)] font-inter font-bold text-xs"
+                    <div
+                      key={idx}
+                      className="p-4 rounded-2xl bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)]/10 group hover:bg-[var(--color-surface-container-low)] transition-colors"
                     >
-                      <Icon name="content_copy" size={16} />
-                      Copiar
-                    </button>
-                  </div>
+                      <div className="flex items-start gap-3">
+                        <Icon name={field.icon} size={20} className="text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-1">
+                            {field.label}
+                          </p>
+                          <p className="text-sm font-inter font-medium text-[var(--color-on-surface)] break-words">
+                            {field.value}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(field.value)}
+                        className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[var(--color-primary)] font-inter font-bold text-xs"
+                      >
+                        <Icon name="content_copy" size={14} />
+                        Copiar
+                      </button>
+                    </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="p-4 rounded-2xl bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)]/10">
+                <div className="flex items-start gap-3">
+                  <Icon name="location_on" size={20} className="text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-1">
+                      Dirección
+                    </p>
+                    <p className="text-sm font-inter font-medium text-[var(--color-on-surface)]">
+                      Calle de Alcalá, 1<br/>28014 Madrid, España
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Info */}
+              <div className="p-4 rounded-2xl bg-[var(--color-surface-container-low)]">
+                <div className="flex items-start gap-3">
+                  <Icon name="schedule" size={20} className="text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-1">
+                      ⏱ Tiempo de acreditación
+                    </p>
+                    <p className="text-sm font-inter text-[var(--color-on-surface)]">
+                      1 - 2 días hábiles
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Security Notes */}
-              <div
-                className="p-6 rounded-2xl space-y-3"
-                style={{ background: "var(--color-surface-container-low)" }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Icon name="shield" size={20} className="text-[var(--color-primary)]" />
-                  <h4 className="font-inter font-bold text-[var(--color-on-surface)] uppercase text-xs tracking-widest">
-                    NOTAS DE SEGURIDAD
-                  </h4>
+              <div className="p-4 rounded-2xl bg-[var(--color-success)]/5 border border-[var(--color-success)]/20">
+                <div className="flex items-start gap-3">
+                  <Icon name="shield_check" size={20} className="text-[var(--color-success)] flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-2">
+                      ✓ Información importante
+                    </p>
+                    <ul className="space-y-1.5">
+                      {[
+                        "Solo desde cuenta a tu nombre",
+                        "Conserva comprobante de pago",
+                        "No incluyas datos personales adicionales",
+                      ].map((note, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs text-[var(--color-on-surface-variant)] font-inter">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] mt-1 flex-shrink-0" />
+                          {note}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <ul className="space-y-2">
-                  {[
-                    "Solo aceptamos transferencias desde una cuenta a su nombre",
-                    "Las transferencias SEPA suelen tardar de 1 a 2 días hábiles",
-                    "Conserve el comprobante de pago hasta que su saldo se actualice",
-                  ].map((note, idx) => (
-                    <li key={idx} className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] mt-1.5 flex-shrink-0" />
-                      <span className="text-sm text-[var(--color-on-surface-variant)] font-inter">{note}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
 
+              {/* CTA Button */}
               <Button
                 onClick={() => window.history.back()}
                 className="w-full h-14 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-container)] text-white font-bold"
               >
-                Cerrar
+                Entendido
               </Button>
             </motion.div>
           )}
