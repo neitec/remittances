@@ -36,22 +36,6 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
-## 📚 Documentation
-
-- **`FRONTEND_SETUP.md`** - Complete implementation guide with code examples
-- **`SETUP_NEXT_STEPS.md`** - Development roadmap and component checklist
-
-## 🚀 Implementation Status
-
-✅ Next.js 16 + TypeScript + Tailwind CSS + Turbopack
-✅ Material Design 3 system implemented
-✅ Auth0 authentication integrated
-✅ Deposit, Send, Transactions, Accounts management pages
-✅ All UI components with Material Design 3 compliance
-✅ Real transaction data (no mocks)
-✅ Production-ready build (0 TypeScript errors)
 
 ## 📦 Scripts
 
@@ -61,11 +45,5 @@ npm run build            # Build for production
 npm run start            # Start production server
 npm run lint             # Lint code
 ```
-
-## 🔗 Backend
-
-Connects to: `http://localhost:3001/api` (configurable in `.env.local`)
-
----
 
 **Enterprise-grade digital remittances platform. 🚀**
