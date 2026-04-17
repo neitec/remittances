@@ -4,10 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Shield, Zap, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Icon } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -75,15 +72,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-navy via-[#0a2f26] to-brand-turquoise relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-primary)] via-[var(--color-primary-container)] to-[var(--color-primary-fixed)] relative overflow-hidden">
       {/* Animated background elements */}
       <motion.div
-        className="absolute top-0 -left-40 w-80 h-80 bg-brand-turquoise opacity-10 rounded-full blur-3xl"
+        className="absolute top-0 -left-40 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl"
         animate={{ y: [0, 30, 0] }}
         transition={{ duration: 8, repeat: Infinity }}
       />
       <motion.div
-        className="absolute -bottom-20 -right-40 w-80 h-80 bg-brand-coral opacity-5 rounded-full blur-3xl"
+        className="absolute -bottom-20 -right-40 w-80 h-80 bg-white opacity-3 rounded-full blur-3xl"
         animate={{ y: [0, -30, 0] }}
         transition={{ duration: 10, repeat: Infinity }}
       />
@@ -97,8 +94,8 @@ export default function LoginPage() {
         <svg className="w-full h-full" viewBox="0 0 1440 200" fill="none" preserveAspectRatio="none">
           <path
             d="M0,80 Q180,40 360,80 T720,80 T1080,80 T1440,80 L1440,200 L0,200 Z"
-            fill="currentColor"
-            className="text-brand-white/5"
+            fill="white"
+            opacity="0.05"
           />
         </svg>
       </motion.div>
@@ -119,35 +116,40 @@ export default function LoginPage() {
               variants={item}
               className="inline-block lg:inline-block mb-6"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-brand-turquoise to-brand-coral rounded-2xl flex items-center justify-center shadow-lg">
-                <Globe className="w-8 h-8 text-brand-white" />
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg border border-white/30">
+                <Icon
+                  name="globe"
+                  size={32}
+                  className="text-white"
+                  filled
+                />
               </div>
             </motion.div>
 
             <motion.h1
               variants={item}
-              className="text-5xl lg:text-6xl font-bold text-brand-white font-heading mb-2"
+              className="text-5xl lg:text-6xl font-manrope font-extrabold text-white mb-2"
             >
-              Remesas
+              Remita
             </motion.h1>
             <motion.p
               variants={item}
-              className="text-2xl lg:text-3xl text-brand-turquoise font-semibold mb-6"
+              className="text-xl lg:text-2xl text-white/80 font-inter font-medium mb-6"
             >
-              Digitales
+              La forma más rápida de enviar dinero
             </motion.p>
 
             {/* Emotional tagline */}
             <motion.p
               variants={item}
-              className="text-2xl lg:text-3xl text-brand-white font-medium mb-6 leading-tight"
+              className="text-lg lg:text-xl text-white/70 font-inter font-medium mb-6 leading-tight"
             >
               Tu dinero llega al instante
             </motion.p>
 
             <motion.p
               variants={item}
-              className="text-brand-sand/90 text-base lg:text-lg mb-10 leading-relaxed"
+              className="text-white/60 text-base lg:text-lg font-inter mb-10 leading-relaxed"
             >
               Envía dinero a República Dominicana de forma rápida, segura y sin comisiones ocultas. Conecta con los tuyos, sin fronteras.
             </motion.p>
@@ -158,27 +160,24 @@ export default function LoginPage() {
               variants={container}
             >
               {[
-                { icon: Zap, text: "Instantáneo", desc: "En segundos" },
-                { icon: Shield, text: "Seguro", desc: "Encriptado" },
-                { icon: Globe, text: "Global", desc: "24/7 disponible" },
-              ].map((benefit, idx) => {
-                const Icon = benefit.icon;
-                return (
+                { icon: "bolt", text: "Instantáneo", desc: "En segundos" },
+                { icon: "verified_user", text: "Seguro", desc: "Encriptado" },
+                { icon: "public", text: "Global", desc: "24/7 disponible" },
+              ].map((benefit) => (
                   <motion.div
                     key={benefit.text}
                     variants={item}
                     className="flex items-center gap-3 text-left"
                   >
-                    <div className="w-10 h-10 rounded-full bg-brand-turquoise/20 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-brand-turquoise" />
+                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                      <Icon name={benefit.icon} size={20} className="text-white" filled />
                     </div>
                     <div>
-                      <p className="text-brand-white font-semibold">{benefit.text}</p>
-                      <p className="text-brand-sand/70 text-sm">{benefit.desc}</p>
+                      <p className="text-white font-manrope font-bold text-sm">{benefit.text}</p>
+                      <p className="text-white/60 text-xs font-inter">{benefit.desc}</p>
                     </div>
                   </motion.div>
-                );
-              })}
+              ))}
             </motion.div>
           </motion.div>
         </div>
@@ -191,13 +190,13 @@ export default function LoginPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <div className="bg-brand-white/98 backdrop-blur-md rounded-3xl shadow-2xl p-8 space-y-6 border border-brand-white/20">
+            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 space-y-6 border border-white/20">
               {/* Auth0 email/password + Google form */}
               <>
-                <h2 className="text-2xl font-bold text-brand-navy font-heading text-center">
+                <h2 className="text-2xl font-manrope font-bold text-[var(--color-on-surface)] text-center">
                   Iniciar sesión
                 </h2>
-                  <p className="text-brand-sand/80 text-center text-sm mb-6">
+                  <p className="text-[var(--color-on-surface-variant)] text-center text-sm mb-6 font-inter">
                     Accede con tu email o cuenta de Google
                   </p>
 
@@ -205,7 +204,7 @@ export default function LoginPage() {
                   <AnimatePresence>
                     {error && (
                       <motion.div
-                        className="bg-brand-coral/10 border border-brand-coral text-brand-coral px-4 py-3 rounded-lg text-sm"
+                        className="bg-[var(--color-error)]/10 border border-[var(--color-error)] text-[var(--color-error)] px-4 py-3 rounded-lg text-sm font-inter"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: [-8, 8, -5, 5, 0] }}
                         exit={{ opacity: 0 }}
@@ -225,20 +224,20 @@ export default function LoginPage() {
                   >
                     {/* Email Input */}
                     <div className="space-y-3">
-                      <Label
+                      <label
                         htmlFor="auth0Email"
-                        className="text-brand-navy font-semibold font-heading"
+                        className="text-[var(--color-on-surface)] font-inter font-bold text-sm"
                       >
                         Correo electrónico
-                      </Label>
-                      <Input
+                      </label>
+                      <input
                         id="auth0Email"
                         type="email"
                         placeholder="correo@ejemplo.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
-                        className="border-2 border-brand-sand focus:border-brand-turquoise focus:ring-brand-turquoise/20"
+                        className="w-full px-4 py-3 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-inter focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50"
                       />
                     </div>
 
@@ -248,24 +247,20 @@ export default function LoginPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.5 }}
                     >
-                      <Button
+                      <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-gradient-to-r from-brand-turquoise to-brand-turquoise/90 hover:from-brand-turquoise/90 hover:to-brand-turquoise text-brand-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl"
+                        className="w-full bg-[var(--color-primary)] hover:opacity-90 text-white font-manrope font-bold py-3 rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                       >
                         {isLoading ? (
-                          <motion.div
-                            className="flex items-center gap-2"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                          >
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                          <>
+                            <Icon name="hourglass_empty" size={18} className="animate-spin" />
                             <span>Conectando...</span>
-                          </motion.div>
+                          </>
                         ) : (
                           "Continuar"
                         )}
-                      </Button>
+                      </button>
                     </motion.div>
                   </motion.form>
 
@@ -276,9 +271,9 @@ export default function LoginPage() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.6 }}
                   >
-                    <div className="flex-1 h-px bg-brand-sand/30" />
-                    <span className="text-xs text-brand-sand/60">o continúa con</span>
-                    <div className="flex-1 h-px bg-brand-sand/30" />
+                    <div className="flex-1 h-px bg-[var(--color-outline-variant)]/30" />
+                    <span className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">o continúa con</span>
+                    <div className="flex-1 h-px bg-[var(--color-outline-variant)]/30" />
                   </motion.div>
 
                   {/* Google Button */}
@@ -287,11 +282,11 @@ export default function LoginPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.7 }}
                   >
-                    <Button
+                    <button
                       type="button"
                       onClick={handleAuth0GoogleLogin}
                       disabled={isLoading}
-                      className="w-full bg-brand-white border-2 border-brand-sand hover:bg-brand-sand/5 text-brand-navy font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      className="w-full bg-white border border-[var(--color-outline-variant)] hover:bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] font-manrope font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                     >
                       {/* Google Icon (inline SVG) */}
                       <svg
@@ -318,12 +313,12 @@ export default function LoginPage() {
                         />
                       </svg>
                       {isLoading ? "Conectando..." : "Continuar con Google"}
-                    </Button>
+                    </button>
                   </motion.div>
 
                 {/* Terms Footer */}
                 <motion.p
-                  className="text-xs text-brand-sand/70 text-center"
+                  className="text-xs text-[var(--color-on-surface-variant)]/70 text-center font-inter"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
@@ -338,12 +333,12 @@ export default function LoginPage() {
 
       {/* Footer text */}
       <motion.p
-        className="absolute bottom-4 left-0 right-0 text-center text-brand-sand/60 text-xs"
+        className="absolute bottom-4 left-0 right-0 text-center text-white/50 text-xs font-inter"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
       >
-        Plataforma segura de remesas digitales para toda la familia
+        Remita · Tu dinero llega al instante
       </motion.p>
     </div>
   );

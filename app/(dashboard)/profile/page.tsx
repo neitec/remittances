@@ -1,10 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import { TopAppBar } from "@/components/nav/TopAppBar";
+import { Icon } from "@/components/ui/Icon";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -13,65 +14,91 @@ export default function ProfilePage() {
     logout();
   };
 
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "U";
+
   return (
-    <div className="min-h-screen bg-brand-white px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div
-        className="max-w-md"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-3xl font-bold text-brand-navy font-heading mb-8">
-          Perfil
-        </h1>
+    <div className="min-h-screen bg-[var(--color-background)]">
+      <TopAppBar title="Mi Cuenta" />
 
-        <Card className="border border-brand-sand/20">
-          <CardHeader>
-            <CardTitle className="text-brand-navy">Tu Perfil</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {user && (
-              <>
-                <div>
-                  <p className="text-xs text-brand-sand/70 uppercase font-semibold mb-2">
-                    Email
+      <main className="pt-24 pb-20 px-6 max-w-md mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-6"
+        >
+          {/* Avatar */}
+          <div className="flex justify-center">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-container)] flex items-center justify-center">
+              <span className="text-white font-manrope font-bold text-2xl">{initials}</span>
+            </div>
+          </div>
+
+          {/* User Info */}
+          {user && (
+            <>
+              {user.name && (
+                <div className="text-center">
+                  <p className="font-manrope font-bold text-2xl text-[var(--color-on-surface)]">
+                    {user.name}
                   </p>
-                  <p className="text-brand-navy font-semibold">{user.email}</p>
                 </div>
+              )}
 
-                {user.name && (
-                  <div>
-                    <p className="text-xs text-brand-sand/70 uppercase font-semibold mb-2">
-                      Nombre
-                    </p>
-                    <p className="text-brand-navy font-semibold">{user.name}</p>
-                  </div>
-                )}
+              {user.email && (
+                <div className="text-center">
+                  <p className="text-sm text-[var(--color-on-surface-variant)] font-inter">
+                    {user.email}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
 
-                {user.sub && (
-                  <div>
-                    <p className="text-xs text-brand-sand/70 uppercase font-semibold mb-2">
-                      ID de Usuario
-                    </p>
-                    <div className="bg-brand-sand/30 rounded-lg p-3 font-mono text-xs text-brand-navy break-all">
-                      {user.sub}
-                    </div>
-                  </div>
-                )}
-              </>
+          {/* Details Cards */}
+          <div className="space-y-3 mt-8">
+            {user?.email && (
+              <div
+                className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)]"
+                style={{ boxShadow: "var(--shadow-card)" }}
+              >
+                <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-2">
+                  Email
+                </p>
+                <p className="text-[var(--color-on-surface)] font-inter break-all">{user.email}</p>
+              </div>
             )}
 
-            <Button
-              onClick={handleLogout}
-              variant="destructive"
-              className="w-full bg-brand-coral hover:bg-brand-coral/90 text-brand-white flex items-center justify-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Cerrar Sesión</span>
-            </Button>
-          </CardContent>
-        </Card>
-      </motion.div>
+            {user?.name && (
+              <div
+                className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)]"
+                style={{ boxShadow: "var(--shadow-card)" }}
+              >
+                <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-2">
+                  Nombre
+                </p>
+                <p className="text-[var(--color-on-surface)] font-inter">{user.name}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Logout Button */}
+          <Button
+            onClick={handleLogout}
+            className="w-full mt-8 h-14 rounded-xl bg-[var(--color-error)]/10 text-[var(--color-error)] font-bold border border-[var(--color-error)]/20 hover:bg-[var(--color-error)]/20 flex items-center justify-center gap-2"
+          >
+            <Icon name="logout" size={20} />
+            <span className="font-inter">Cerrar Sesión</span>
+          </Button>
+        </motion.div>
+      </main>
     </div>
   );
 }

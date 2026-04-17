@@ -3,18 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  Home,
-  Send,
-  History,
-  MoreVertical,
-} from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
+import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Inicio", icon: Home },
-  { href: "/send", label: "Enviar", icon: Send, isMain: true },
-  { href: "/transactions", label: "Historial", icon: History },
-  { href: "/profile", label: "Perfil", icon: MoreVertical },
+  { href: "/transactions", label: "HISTORIAL", icon: "history" },
+  { href: "/dashboard", label: "HOME", icon: "home" },
+  { href: "/profile", label: "CUENTA", icon: "person" },
 ];
 
 export function BottomNav() {
@@ -22,66 +17,49 @@ export function BottomNav() {
 
   return (
     <motion.nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-brand-navy border-t border-brand-sand/20 lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-[2.5rem] bg-white shadow-[0_-10px_30px_rgba(0,0,0,0.03)]"
       initial={{ y: 80 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="flex items-center justify-around h-20 px-4 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around h-20 px-6 pb-8">
         {navItems.map((item) => {
-          const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-
-          if (item.isMain) {
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="relative -mt-8 flex flex-col items-center gap-1"
-              >
-                <motion.div
-                  className="flex items-center justify-center w-14 h-14 rounded-full bg-brand-turquoise shadow-lg"
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <Icon className="w-6 h-6 text-brand-white" />
-                </motion.div>
-              </Link>
-            );
-          }
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 flex-1 py-3"
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 transition-all",
+                isActive
+                  ? "w-24 h-16 bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded-[1.5rem] flex items-center justify-center"
+                  : "text-slate-400"
+              )}
             >
-              <motion.div
-                className="flex flex-col items-center gap-1"
-                whileTap={{ scale: 0.9 }}
-              >
+              <motion.div whileTap={{ scale: 0.95 }} className="flex items-center justify-center">
                 <Icon
-                  className={`w-6 h-6 transition-colors ${
-                    isActive ? "text-brand-turquoise" : "text-brand-white/60"
-                  }`}
-                />
-                <span
-                  className={`text-xs font-medium transition-colors ${
+                  name={item.icon}
+                  size={isActive ? 30 : 24}
+                  filled={isActive}
+                  className={cn(
+                    "transition-all",
                     isActive
-                      ? "text-brand-turquoise"
-                      : "text-brand-white/60"
-                  }`}
-                >
-                  {item.label}
-                </span>
-                {isActive && (
-                  <motion.div
-                    layoutId="indicator"
-                    className="w-1.5 h-1.5 rounded-full bg-brand-turquoise"
-                    transition={{ type: "spring", bounce: 0.2 }}
-                  />
-                )}
+                      ? "text-[var(--color-primary)]"
+                      : "text-slate-400"
+                  )}
+                />
               </motion.div>
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-widest transition-colors font-manrope",
+                  isActive
+                    ? "text-[var(--color-primary)]"
+                    : "text-slate-400"
+                )}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

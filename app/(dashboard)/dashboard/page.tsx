@@ -2,64 +2,92 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, Send, Plus, Lock } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useAccounts } from "@/lib/hooks/useAccounts";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { CountUp } from "@/components/motion/CountUp";
-import { StaggerChildren, MotionItem } from "@/components/motion/StaggerChildren";
 import { SkeletonCard, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
-import { formatCurrency, formatDate, formatRelativeDate } from "@/lib/format";
+import { formatCurrency, formatRelativeDate } from "@/lib/format";
 import { useTransactions } from "@/lib/hooks/useTransactions";
-import { useState } from "react";
+import { HeroBalanceCard } from "@/components/features/Dashboard/HeroBalanceCard";
+import { Icon } from "@/components/ui/Icon";
 
 export default function DashboardPage() {
   const { data: dashboardData, isLoading, isError } = useAccounts();
   const { data: transactionsData } = useTransactions();
   const { user } = useAuth();
-  const [showPhase2Hype, setShowPhase2Hype] = useState(false);
 
-  // Get user's name from Auth0 or fallback to "Usuario"
   const userName = user?.name ? user.name.split(" ")[0] : "Usuario";
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "U";
 
   if (isError) {
     return (
-      <div className="p-4 sm:p-6">
-        <div className="bg-brand-coral/10 border border-brand-coral text-brand-coral rounded-lg p-4 sm:p-6">
-          <p>Error al cargar los datos. Por favor, intenta más tarde.</p>
+      <div className="pt-24 px-6">
+        <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)] text-[var(--color-error)] rounded-2xl p-6">
+          <p className="font-inter">Error al cargar los datos. Por favor, intenta más tarde.</p>
         </div>
       </div>
     );
   }
 
   const totalBalance = dashboardData?.totalBalance ?? 0;
-  const accounts = dashboardData?.accounts ?? [];
   const transactions = transactionsData?.pages?.[0]?.transactions ?? [];
   const lastTransactions = transactions.slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-brand-white pb-4">
-      {/* Header with greeting */}
+    <div className="min-h-screen bg-[var(--color-background)]">
+      {/* G1: Dashboard Header */}
       <motion.header
-        className="sticky top-0 z-40 bg-brand-white border-b border-brand-sand/20 backdrop-blur-sm"
+        className="fixed top-0 left-0 right-0 lg:left-64 z-40 h-16 flex items-center justify-between px-6"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
+        style={{
+          background: "rgba(248, 249, 250, 0.7)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
       >
-        <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-navy font-heading">
-            Buenos días, {userName}
-          </h1>
-          <p className="text-brand-sand/80 mt-1 text-xs sm:text-sm">
-            Gestiona tus remesas de forma segura
+        {/* Left: Avatar + Greeting */}
+        <div className="flex items-center gap-3 flex-1">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-container)] border-2 border-[#0052FF] flex items-center justify-center text-white font-manrope font-bold text-sm">
+            {initials}
+          </div>
+          <div>
+            <p className="text-sm font-manrope font-bold text-[var(--color-on-surface)]">
+              Hola, {userName}
+            </p>
+            <p className="text-xs font-inter font-bold uppercase text-[var(--color-primary)] tracking-widest">
+              MEMBER
+            </p>
+          </div>
+        </div>
+
+        {/* Center: Logo (absolute centered) */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <p className="font-manrope font-extrabold text-xl text-[var(--color-on-surface)]">
+            Remita
           </p>
+        </div>
+
+        {/* Right: QR Icon */}
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-primary-fixed)" }}>
+          <Icon
+            name="qr_code_2"
+            size={20}
+            className="text-[var(--color-on-surface)]"
+          />
         </div>
       </motion.header>
 
       {/* Main content */}
-      <main className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-2xl mx-auto lg:max-w-4xl">
-        {/* Balance Card */}
+      <main className="px-6 pt-24 pb-32 space-y-6 max-w-2xl mx-auto">
+        {/* Hero Balance Card */}
         {isLoading ? (
           <SkeletonCard />
         ) : (
@@ -67,63 +95,77 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-8"
           >
-            <Card className="bg-gradient-to-br from-brand-navy to-brand-navy/80 border-0 text-brand-white shadow-xl">
-              <CardHeader className="pb-2 sm:pb-4">
-                <CardTitle className="text-xs sm:text-sm font-medium text-brand-sand/80 uppercase tracking-wide">
-                  Saldo Total EUR
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-4 sm:pb-6">
-                <div className="text-3xl sm:text-5xl font-bold font-heading mb-2">
-                  <CountUp to={totalBalance} currency="EUR" />
-                </div>
-                <p className="text-brand-sand/80 text-xs sm:text-sm">
-                  Disponible para transferencias y más
-                </p>
-              </CardContent>
-            </Card>
+            <HeroBalanceCard balanceEur={totalBalance} isLoading={isLoading} />
           </motion.div>
         )}
 
-        {/* Quick Action Buttons */}
-        <motion.div
-          className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8"
+        {/* D1: Movimientos Section with Slider Visuals */}
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
+          className="space-y-3"
         >
-          <Link href="/deposit" className="w-full">
-            <Button className="w-full h-12 sm:h-14 bg-brand-coral hover:bg-brand-coral/90 text-brand-white font-bold rounded-lg flex flex-col items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Depositar</span>
-            </Button>
-          </Link>
-          <Link href="/send" className="w-full">
-            <Button className="w-full h-12 sm:h-14 bg-brand-turquoise hover:bg-brand-turquoise/90 text-brand-navy font-bold rounded-lg flex flex-col items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Enviar</span>
-            </Button>
-          </Link>
-        </motion.div>
+          <h2 className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
+            MOVIMIENTOS
+          </h2>
 
-        {/* Last Transactions */}
-        <motion.div
+          {/* DEPOSITA - Thumb on left */}
+          <Link href="/deposit">
+            <div className="h-16 bg-[var(--color-surface-container-low)] rounded-3xl flex items-center px-4 cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden group">
+              {/* Thumb on left */}
+              <div className="absolute left-2 w-14 h-14 bg-[var(--color-primary)] rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:shadow-xl transition-shadow">
+                <Icon name="trending_flat" size={20} className="text-white" />
+              </div>
+              {/* Label centered */}
+              <div className="flex-1 text-center">
+                <p className="text-sm font-inter font-bold uppercase tracking-[0.1em]" style={{ color: "#70747C" }}>
+                  DEPOSITA
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          {/* TRANSFIERE - Thumb on right */}
+          <Link href="/send">
+            <div className="h-16 bg-[var(--color-surface-container-low)] rounded-3xl flex items-center px-4 cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden group">
+              {/* Glow on right */}
+              <div className="absolute right-0 top-0 bottom-0 w-16 bg-[var(--color-primary)]/10 rounded-l-3xl" />
+              {/* Label centered */}
+              <div className="flex-1 text-center">
+                <p className="text-sm font-inter font-bold uppercase tracking-[0.1em]" style={{ color: "#70747C" }}>
+                  TRANSFIERE
+                </p>
+              </div>
+              {/* Thumb on right */}
+              <div className="absolute right-2 w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[var(--color-primary)] shadow-lg group-hover:shadow-xl transition-shadow border border-[var(--color-surface-container-highest)]">
+                <Icon name="trending_flat" size={20} className="text-[var(--color-primary)] rotate-180" />
+              </div>
+            </div>
+          </Link>
+
+          {/* RETIRA - Disabled */}
+          <div className="h-16 border-2 border-[var(--color-primary)]/20 bg-[var(--color-surface-container-low)]/50 rounded-3xl flex items-center justify-between px-4 opacity-60 pointer-events-none">
+            <p className="text-sm font-inter font-bold uppercase tracking-[0.1em]" style={{ color: "#70747C" }}>
+              RETIRA
+            </p>
+            <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase" style={{ background: "var(--color-primary-fixed)", color: "var(--color-primary)" }}>
+              PRÓXIMAMENTE
+            </span>
+          </div>
+        </motion.section>
+
+        {/* D2 + D3: Actividad Section */}
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="space-y-3"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl font-bold text-brand-navy font-heading">
-              Últimos Movimientos
-            </h2>
-            {lastTransactions.length > 0 && (
-              <Link href="/transactions" className="text-brand-coral text-xs sm:text-sm font-medium hover:underline">
-                Ver todo
-              </Link>
-            )}
-          </div>
+          <h2 className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
+            ACTIVIDAD
+          </h2>
 
           {isLoading ? (
             <div className="space-y-2">
@@ -132,7 +174,7 @@ export default function DashboardPage() {
               <SkeletonTransactionRow />
             </div>
           ) : lastTransactions.length > 0 ? (
-            <Card className="bg-brand-white border border-brand-sand/20">
+            <div className="space-y-1">
               {lastTransactions.map((txn, idx) => (
                 <motion.div
                   key={txn.id}
@@ -141,53 +183,94 @@ export default function DashboardPage() {
                   transition={{ duration: 0.4, delay: 0.3 + idx * 0.05 }}
                 >
                   <Link href={`/transactions?detail=${txn.id}`}>
-                    <div className="flex items-center justify-between p-3 sm:p-4 border-b border-brand-sand/10 last:border-b-0 hover:bg-brand-sand/5 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                        <div
-                          className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full flex-shrink-0 ${
-                            txn.type === "TRANSFER"
-                              ? "bg-brand-coral/20"
-                              : "bg-brand-turquoise/20"
-                          }`}
-                        >
-                          {txn.type === "TRANSFER" ? (
-                            <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-brand-coral" />
-                          ) : (
-                            <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5 text-brand-turquoise" />
-                          )}
+                    <div
+                      className="p-4 rounded-[2rem] bg-[var(--color-surface-container-low)]/50 hover:bg-[var(--color-surface-container-low)] transition-colors cursor-pointer active:scale-[0.98]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {/* D2: Avatar con icono person en primary */}
+                          <div className="flex items-center justify-center w-12 h-12 rounded-full flex-shrink-0 bg-white shadow-sm">
+                            <Icon
+                              name="person"
+                              size={24}
+                              className="text-[var(--color-primary)]"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            {/* D2: Font manrope bold */}
+                            <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm truncate">
+                              {txn.type === "TRANSFER"
+                                ? "Transferencia"
+                                : txn.type === "DEPOSIT"
+                                ? "Depósito"
+                                : "Transacción"}
+                            </p>
+                            <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">
+                              {formatRelativeDate(txn.createdAt)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-brand-navy text-xs sm:text-sm truncate">
-                            {txn.type === "TRANSFER" ? "Transferencia" : txn.type === "DEPOSIT" ? "Depósito" : "Transacción"}
-                          </p>
-                          <p className="text-xs text-brand-sand/80">
-                            {formatRelativeDate(txn.createdAt)}
-                          </p>
-                        </div>
+                        {/* D2: Monto en manrope font bold */}
+                        <p className="font-manrope font-bold text-sm flex-shrink-0 text-[var(--color-on-surface)]">
+                          {txn.type === "TRANSFER" ? "-" : "+"}
+                          {formatCurrency(parseFloat(txn.amount))}
+                        </p>
                       </div>
-                      <p
-                        className={`font-bold text-xs sm:text-sm flex-shrink-0 ${
-                          txn.type === "TRANSFER"
-                            ? "text-brand-navy"
-                            : "text-brand-turquoise"
-                        }`}
-                      >
-                        {txn.type === "TRANSFER" ? "-" : "+"}
-                        {formatCurrency(parseFloat(txn.amount))}
-                      </p>
                     </div>
                   </Link>
                 </motion.div>
               ))}
-            </Card>
+            </div>
           ) : (
-            <Card className="text-center py-8 sm:py-12 bg-brand-sand/30 border-brand-sand/40">
-              <p className="text-brand-navy/90 text-sm">
+            <div
+              className="text-center py-8 rounded-[2rem] p-6"
+              style={{
+                background: "var(--color-surface-container-low)",
+              }}
+            >
+              <p className="text-[var(--color-on-surface)]/90 text-sm font-inter">
                 Aún no tienes movimientos. ¡Haz tu primer envío!
               </p>
-            </Card>
+            </div>
           )}
-        </motion.div>
+        </motion.section>
+
+        {/* D3: Mis Cuentas Card - Tertiary (Naranja) */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Link href="/accounts">
+            <div
+              className="p-5 rounded-[2rem] bg-[var(--color-surface-container-low)] flex items-center justify-between group cursor-pointer active:scale-[0.98] transition-all hover:bg-[var(--color-surface-container)]"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                {/* D3: Tertiary color icons (naranja) */}
+                <div className="w-12 h-12 rounded-2xl bg-[var(--color-tertiary-fixed)] flex items-center justify-center flex-shrink-0">
+                  <Icon
+                    name="account_balance"
+                    size={24}
+                    className="text-[var(--color-tertiary)]"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-manrope font-bold text-[var(--color-on-surface)]">
+                    Mis Cuentas
+                  </h3>
+                  <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">
+                    IBAN & Alias configurados
+                  </p>
+                </div>
+              </div>
+              <Icon
+                name="chevron_right"
+                size={24}
+                className="text-[var(--color-on-surface-variant)] group-hover:translate-x-1 transition-transform"
+              />
+            </div>
+          </Link>
+        </motion.section>
       </main>
     </div>
   );
