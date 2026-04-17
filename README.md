@@ -1,6 +1,6 @@
-# Remittances MVP - Digital Money Transfer Platform
+# Remita - Digital Money Transfer Platform
 
-A modern, Revolut-inspired frontend for cross-border money transfers built with Next.js 14, TypeScript, and Tailwind CSS.
+A modern, Material Design 3-inspired frontend for cross-border money transfers built with Next.js 16, TypeScript, and Tailwind CSS.
 
 ## 🎯 Features
 
@@ -8,18 +8,19 @@ A modern, Revolut-inspired frontend for cross-border money transfers built with 
 - **SEPA Deposits** - Add funds via bank transfer (EUR)
 - **Transaction History** - Track all your transfers and deposits
 - **Bank Account Management** - Register your IBAN for deposits
-- **API Key Authentication** - Secure, token-based access
-- **Professional UI** - Enterprise-grade design inspired by Revolut
+- **Auth0 Authentication** - Secure OAuth-based access
+- **Material Design 3 UI** - Modern, accessible design system
 - **Mobile Responsive** - Works seamlessly on all devices
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 14 (App Router)
+- **Frontend**: Next.js 16 (App Router, Turbopack)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS v4
-- **Components**: shadcn/ui
-- **State**: Zustand + React Query
-- **Forms**: React Hook Form + Zod
+- **Styling**: Tailwind CSS
+- **Components**: shadcn/ui + Material Design 3
+- **Animations**: Framer Motion
+- **State**: React Query
+- **Authentication**: Auth0
 - **Deployment**: Vercel
 
 ## 🚀 Quick Start
@@ -35,7 +36,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and use API key: `rem-test-key-spain-001`
+Open [http://localhost:3000](http://localhost:3000)
 
 ## 📚 Documentation
 
@@ -44,11 +45,13 @@ Open [http://localhost:3000](http://localhost:3000) and use API key: `rem-test-k
 
 ## 🚀 Implementation Status
 
-✅ Next.js 14 + TypeScript + Tailwind CSS
-✅ shadcn/ui components installed
-✅ Dependencies: axios, zustand, react-query, zod, react-hook-form
-✅ Directory structure created
-⏳ Components to be implemented following `SETUP_NEXT_STEPS.md`
+✅ Next.js 16 + TypeScript + Tailwind CSS + Turbopack
+✅ Material Design 3 system implemented
+✅ Auth0 authentication integrated
+✅ Deposit, Send, Transactions, Accounts management pages
+✅ All UI components with Material Design 3 compliance
+✅ Real transaction data (no mocks)
+✅ Production-ready build (0 TypeScript errors)
 
 ## 📦 Scripts
 
@@ -65,4 +68,4 @@ Connects to: `http://localhost:3001/api` (configurable in `.env.local`)
 
 ---
 
-**Ready for enterprise-grade frontend implementation! 🚀**
+**Enterprise-grade digital remittances platform. 🚀**
