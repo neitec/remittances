@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TopAppBar } from "@/components/nav/TopAppBar";
+import { AppHeader } from "@/components/nav/AppHeader";
 import { BankAccountForm } from "@/components/features/BankAccountForm";
 import { useExternalAccounts } from "@/lib/hooks/useExternalAccounts";
 import { maskIBAN } from "@/lib/format";
@@ -15,7 +15,7 @@ export default function AccountsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
-      <TopAppBar title="Mis Cuentas" onBack={() => window.history.back()} />
+      <AppHeader showBack onBack={() => window.history.back()} />
 
       <main className="pt-24 px-6 pb-32 max-w-2xl mx-auto">
         <motion.div

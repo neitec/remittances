@@ -25,7 +25,7 @@ export function TopAppBar({ title, onBack, rightAction, className }: TopAppBarPr
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 right-0 lg:left-64 z-50 h-16 flex items-center justify-between px-6",
+        "fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-6 lg:pl-[calc(208px+1.5rem)] lg:pr-6",
         className
       )}
       style={{

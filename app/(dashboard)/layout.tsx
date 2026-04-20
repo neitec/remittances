@@ -5,6 +5,8 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { AppShell } from "@/components/nav/AppShell";
 
+const isDesignMode = process.env.NEXT_PUBLIC_DESIGN_MODE === "true";
+
 export default function DashboardLayout({
   children,
 }: {
@@ -13,20 +15,15 @@ export default function DashboardLayout({
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Redirect to login if not authenticated
   useEffect(() => {
-    // Skip redirect while Auth0 is loading
-    if (isLoading) {
-      return;
-    }
-
+    if (isDesignMode) return;
+    if (isLoading) return;
     if (!isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Show nothing while redirecting
-  if (isLoading || !isAuthenticated) {
+  if (!isDesignMode && (isLoading || !isAuthenticated)) {
     return null;
   }
 

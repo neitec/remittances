@@ -17,6 +17,9 @@ import { formatCurrency, maskIBAN, formatRelativeDate } from "@/lib/format";
 import { ExternalAccount } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { AppHeader } from "@/components/nav/AppHeader";
+import { TransferProcessingScreen } from "@/components/features/TransferProcessingScreen";
+import Image from "next/image";
 
 type Step = 1 | 2 | 3 | 4 | "processing" | "success" | "error";
 type SendMode = "user" | "bank";
@@ -64,39 +67,30 @@ export default function SendPage() {
   const handleSendConfirm = () => {
     if (submitted) return;
     setSubmitted(true);
-
-    const amountNum = parseFloat(amount.replace(",", "."));
     setErrorMessage("");
-
-    const request =
-      sendMode === "bank" && selectedAccountData
-        ? {
-            beneficiaryPhone: "",
-            amount: amountNum.toString(),
-            currency: "EUR" as const,
-            reference: message ? `mensaje: ${message}` : undefined,
-          }
-        : {
-            beneficiaryPhone: phone,
-            amount: amountNum.toString(),
-            currency: "EUR" as const,
-            reference: message ? `mensaje: ${message}` : undefined,
-          };
-
     setStep("processing");
-    sendMoney(request, {
-      onSuccess: () => {
-        setStep("success");
-        setSubmitted(false);
-      },
-      onError: (err) => {
-        const errorMsg =
-          err instanceof Error ? err.message : "Error al enviar el dinero";
-        setErrorMessage(errorMsg);
-        setStep("error");
-        setSubmitted(false);
-      },
-    });
+
+    // For bank mode, use the real API
+    if (sendMode === "bank" && selectedAccountData) {
+      const amountNum = parseFloat(amount.replace(",", "."));
+      sendMoney(
+        {
+          beneficiaryPhone: "",
+          amount: amountNum.toString(),
+          currency: "EUR" as const,
+          reference: message ? `mensaje: ${message}` : undefined,
+        },
+        {
+          onSuccess: () => { setStep("success"); setSubmitted(false); },
+          onError: (err) => {
+            setErrorMessage(err instanceof Error ? err.message : "Error al enviar el dinero");
+            setStep("error");
+            setSubmitted(false);
+          },
+        }
+      );
+    }
+    // For user mode, the TransferProcessingScreen handles its own flow
   };
 
   useEffect(() => {
@@ -108,54 +102,65 @@ export default function SendPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
-      {/* TopAppBar */}
-      <motion.header
-        className="fixed top-0 left-0 right-0 lg:left-64 z-40 h-16 flex items-center gap-4 px-6 bg-[rgba(248,249,250,0.7)] backdrop-blur-[48px]"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4 }}
-      >
-        {step === 1 ? null : (
-          <button
-            onClick={() => {
-              if (step === 2 && sendMode === "user") {
-                setStep(1);
-              } else if (step === 2 && sendMode === "bank") {
-                setStep(1);
-              } else if (step === 3) {
-                setStep(2);
-              } else if (step === 4) {
-                setStep(3);
-              }
-            }}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[var(--color-surface-container-low)] transition-colors"
-          >
-            <Icon name="arrow_back" size={24} className="text-[var(--color-on-surface)]" />
-          </button>
-        )}
-        <div className="flex-1 text-center absolute left-1/2 -translate-x-1/2">
-          <p className="font-manrope font-bold text-lg text-[var(--color-on-surface)]">
-            {step === 1
-              ? "Enviar Dinero"
-              : step === 2
-              ? sendMode === "user"
-                ? "A un contacto"
-                : "A una cuenta"
-              : step === 3
-              ? "Monto"
-              : step === 4
-              ? "Confirmación"
-              : step === "success"
-              ? "¡Enviado!"
-              : step === "error"
-              ? "Error"
-              : "Procesando"}
-          </p>
-        </div>
-      </motion.header>
+      {/* Header */}
+      <AppHeader
+        showBack={step !== 1 && step !== "processing" && step !== "success" && step !== "error"}
+        onBack={() => {
+          if (step === 2) setStep(1);
+          else if (step === 3) setStep(2);
+          else if (step === 4) setStep(3);
+        }}
+      />
 
       {/* Main content */}
-      <main className="pt-24 px-6 pb-32 lg:pb-0 max-w-2xl mx-auto">
+      <main className="pt-[92px] px-5 pb-32 lg:pb-0 lg:pl-12 lg:pr-10">
+        <div className="max-w-[1088px]">
+
+        {/* Persistent breadcrumb nav — stays across all steps */}
+        {hasBalance && typeof step === "number" && (
+          <div className="pt-1 mb-5 flex items-start gap-3">
+            {step === 1 ? (
+              <div>
+                <span
+                  className="text-[11px] font-inter font-semibold uppercase tracking-[0.2em]"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  TRANSFIERE
+                </span>
+                <div
+                  className="mt-1.5 h-[3px] rounded-full"
+                  style={{ background: "linear-gradient(90deg, #0052ff 0%, #bc4800 100%)", width: "100%" }}
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <button
+                    onClick={() => setStep(1)}
+                    className="text-[11px] font-inter font-semibold uppercase tracking-[0.2em] text-[var(--color-on-surface-variant)]/50 transition-colors hover:text-[var(--color-primary)]/70 cursor-pointer"
+                  >
+                    TRANSFIERE
+                  </button>
+                  <div className="mt-1.5 h-[3px] rounded-full bg-[var(--color-on-surface-variant)]/15" style={{ width: "100%" }} />
+                </div>
+                <span className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/30 self-center">›</span>
+                <div>
+                  <span
+                    className="text-[11px] font-inter font-semibold uppercase tracking-[0.2em]"
+                    style={{ color: "var(--color-primary)" }}
+                  >
+                    {sendMode === "bank" ? "A CUENTA BANCARIA" : "A USUARIO REMITA"}
+                  </span>
+                  <div
+                    className="mt-1.5 h-[3px] rounded-full"
+                    style={{ background: "linear-gradient(90deg, #0052ff 0%, #bc4800 100%)", width: "100%" }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {/* No balance state */}
           {!hasBalance && step === 1 && (
@@ -196,107 +201,165 @@ export default function SendPage() {
             </motion.div>
           )}
 
-          {/* Step 1: Choose transfer type (TR1, TR2) */}
+          {/* Step 1: Choose transfer type */}
           {hasBalance && step === 1 && (
             <motion.div
               key="step1"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className="space-y-3 pb-28 lg:pb-10 max-w-[1088px]"
             >
-              <div className="space-y-3">
-                <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
-                  TIPO DE TRANSFERENCIA
+              {/* Page title + subtitle — same format as deposit */}
+              <div className="space-y-1 pb-4">
+                <h1 className="font-inter font-medium text-[20px] text-[var(--color-on-surface-variant)] leading-tight pt-4">
+                  Transfiere fondos desde tu wallet
+                </h1>
+                <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/50">
+                  Envía dinero desde tu wallet digital
                 </p>
-
-                {/* TR1: Internal transfer */}
-                <button
-                  onClick={() => {
-                    setSendMode("user");
-                    setStep(2);
-                    setPhone("");
-                    setAmount("");
-                  }}
-                  className="relative w-full p-6 rounded-[2.5rem] bg-[var(--color-primary-fixed)] border border-[var(--color-primary)]/30 text-left hover:border-[var(--color-primary)]/50 transition-all group active:scale-[0.98]"
-                >
-                  {/* Badge */}
-                  <div className="absolute top-6 right-6 px-3 py-1 rounded-full bg-[var(--color-primary)] text-white text-[10px] font-bold uppercase">
-                    HABILITADO
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-colors">
-                      <Icon
-                        name="auto_awesome"
-                        size={28}
-                        className="text-[var(--color-primary)]"
-                        filled
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-manrope font-bold text-[var(--color-on-surface)] text-lg">
-                        A un usuario de Remita
-                      </p>
-                      <p className="text-sm text-[var(--color-on-surface-variant)]/80 font-inter mt-1">
-                        Sin comisiones · Instantáneo
-                      </p>
-                    </div>
-                    <Icon
-                      name="chevron_right"
-                      size={24}
-                      className="text-[var(--color-on-surface-variant)] flex-shrink-0 group-hover:translate-x-1 transition-transform"
-                    />
-                  </div>
-                </button>
-
-                {/* TR1: External transfer */}
-                <button
-                  onClick={() => {
-                    setSendMode("bank");
-                    setSelectedBankAccount("");
-                    setSelectedAccountData(null);
-                    setStep(2);
-                  }}
-                  className="relative w-full p-6 rounded-[2.5rem] bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/50 text-left hover:border-[var(--color-outline-variant)] transition-all group active:scale-[0.98]"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface-container-highest)] flex items-center justify-center flex-shrink-0 group-hover:bg-[var(--color-surface-container)] transition-colors">
-                      <Icon
-                        name="swap_horiz"
-                        size={28}
-                        className="text-[var(--color-on-surface)]"
-                        filled
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-manrope font-bold text-[var(--color-on-surface)] text-lg">
-                        A una cuenta bancaria
-                      </p>
-                      <p className="text-sm text-[var(--color-on-surface-variant)]/80 font-inter mt-1">
-                        Transferencia externa — A otro usuario que no es usuario de Remita.
-                      </p>
-                    </div>
-                    <Icon
-                      name="chevron_right"
-                      size={24}
-                      className="text-[var(--color-on-surface-variant)] flex-shrink-0 group-hover:translate-x-1 transition-transform"
-                    />
-                  </div>
-                </button>
               </div>
 
-              {/* TR2: Promotional card */}
-              <div className="p-6 rounded-[2.5rem] bg-[#FFF4ED] border border-[var(--color-tertiary)]/10 space-y-3">
-                <div className="inline-block px-3 py-1 rounded-full bg-[var(--color-tertiary)]/20 text-[var(--color-tertiary)] text-[10px] font-bold uppercase">
-                  Promoción
+              {/* TR1: Internal — Remita user (same style as EUR deposit card) */}
+              <motion.button
+                onClick={() => { setSendMode("user"); setStep(2); setPhone(""); setAmount(""); }}
+                initial="rest"
+                whileHover="hover"
+                whileTap={{ scale: 0.99 }}
+                transition={{ duration: 0.18 }}
+                variants={{ rest: { y: 0 }, hover: { y: -2 } }}
+                className="w-full text-left relative overflow-hidden rounded-[22px] p-5 cursor-pointer"
+                style={{
+                  background: "var(--color-surface-container-lowest)",
+                  border: "1px solid rgba(0,62,199,0.10)",
+                  boxShadow: "0 4px 24px rgba(0,62,199,0.07), 0 1px 4px rgba(0,0,0,0.04)",
+                }}
+              >
+                {/* Static base: continuous diagonal wash */}
+                <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(130deg, rgba(0,62,199,0.04) 0%, rgba(80,60,200,0.02) 50%, rgba(188,72,0,0.03) 100%)" }} />
+                {/* Hover atmospheric field — one cohesive layer */}
+                <motion.div
+                  variants={{ rest: { opacity: 0 }, hover: { opacity: 1 } }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 pointer-events-none overflow-hidden rounded-[22px]"
+                >
+                  {/* Bridging mid-field — spans full card, ties blue+orange together */}
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(130deg, rgba(0,62,199,0.06) 0%, rgba(60,40,180,0.03) 45%, rgba(188,72,0,0.05) 100%)" }} />
+                  {/* Blue orb — pulled inward so it reaches center */}
+                  <motion.div
+                    animate={{ x: [0, 12, -5, 0], y: [0, -8, 10, 0] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute -top-20 -left-10 w-[460px] h-[340px] rounded-full"
+                    style={{ background: "radial-gradient(ellipse at 38% 38%, rgba(0,82,255,0.13) 0%, rgba(0,82,255,0.05) 45%, transparent 70%)" }}
+                  />
+                  {/* Orange orb — pulled inward so it reaches center */}
+                  <motion.div
+                    animate={{ x: [0, -12, 9, 0], y: [0, 10, -7, 0] }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                    className="absolute -bottom-20 -right-10 w-[440px] h-[320px] rounded-full"
+                    style={{ background: "radial-gradient(ellipse at 62% 62%, rgba(188,72,0,0.13) 0%, rgba(188,72,0,0.05) 45%, transparent 70%)" }}
+                  />
+                </motion.div>
+
+                <div className="relative flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-[14px] flex items-center justify-center overflow-hidden" style={{ background: "rgba(0,62,199,0.06)", boxShadow: "0 4px 12px rgba(0,62,199,0.10)" }}>
+                    <Image src="/remita-isologo.png" alt="Remita" width={40} height={40} className="object-contain" style={{ mixBlendMode: "multiply" }} />
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success-border)" }}>
+                    <span className="relative flex items-center justify-center w-2 h-2">
+                      <span className="absolute inset-0 rounded-full bg-emerald-400 animate-pulse-ring" />
+                      <span className="relative w-1.5 h-1.5 rounded-full bg-emerald-500 block" />
+                    </span>
+                    <span className="text-[10px] font-inter font-bold uppercase tracking-[0.1em] text-[var(--color-success-text)]">Habilitado</span>
+                  </div>
                 </div>
-                <h3 className="font-manrope font-bold text-[var(--color-on-surface)] text-lg">
-                  1 mes sin comisiones
-                </h3>
-                <p className="text-sm text-[var(--color-on-surface-variant)]/80 font-inter">
-                  Invita a familia o amigos y ambos obtendréis transferencias sin comisiones.
-                </p>
+                <div className="relative space-y-1.5">
+                  <h3 className="font-manrope font-semibold text-[17px] text-[var(--color-on-surface)] leading-tight">A un usuario de Remita</h3>
+                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">Envío entre wallets on-chain.</p>
+                </div>
+                <div className="relative mt-4 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid rgba(0,62,199,0.07)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(0,62,199,0.09)" }}>
+                      <Icon name="bolt" size={14} className="text-[var(--color-primary)]" />
+                    </div>
+                    <span className="text-[11px] font-inter font-semibold text-[var(--color-primary)]">Instantáneo</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[var(--color-primary)] font-inter font-bold text-[12px]">
+                    ENVIAR <Icon name="arrow_forward" size={14} />
+                  </div>
+                </div>
+              </motion.button>
+
+              {/* TR2: External — bank account (coming soon) */}
+              <motion.button
+                onClick={() => toast.info("Las transferencias bancarias estarán disponibles muy pronto")}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.995 }}
+                transition={{ duration: 0.15 }}
+                className="w-full text-left relative overflow-hidden rounded-[22px] p-5 cursor-pointer"
+                style={{ background: "rgba(248,249,250,0.5)", border: "2px dashed var(--color-outline-variant)" }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-surface-container-high)" }}>
+                    <Icon name="account_balance" size={22} className="text-[var(--color-on-surface-variant)]/35" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-manrope font-bold text-[var(--color-on-surface)]/50">A una cuenta bancaria</h3>
+                    <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/40 mt-1 leading-relaxed">
+                      Transferencias externas a usuarios fuera de Remita. Estamos trabajando para habilitar esta opción.
+                    </p>
+                  </div>
+                  <span
+                    className="flex-shrink-0 text-[10px] font-inter font-bold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full"
+                    style={{ background: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" }}
+                  >
+                    Próximamente
+                  </span>
+                </div>
+              </motion.button>
+
+              {/* Promotional card */}
+              <div
+                className="relative overflow-hidden rounded-[22px] flex items-stretch"
+                style={{
+                  background: "linear-gradient(135deg, #FFF4ED 0%, #FFEEDD 100%)",
+                  border: "1px solid rgba(188,72,0,0.12)",
+                  minHeight: "190px",
+                }}
+              >
+                {/* Left: text content */}
+                <div className="relative z-10 flex-1 px-6 py-6 space-y-3 flex flex-col justify-center">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit" style={{ background: "rgba(188,72,0,0.12)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full block" style={{ background: "#bc4800" }} />
+                    <span className="text-[10px] font-inter font-bold uppercase tracking-[0.14em]" style={{ color: "#bc4800" }}>Promoción</span>
+                  </div>
+                  <h3 className="font-manrope font-bold text-[var(--color-on-surface)] text-[22px] leading-tight whitespace-nowrap">
+                    1 mes sin comisiones
+                  </h3>
+                  <div className="w-fit space-y-2">
+                    <p className="text-[12.5px] font-inter leading-relaxed" style={{ color: "rgba(60,30,0,0.55)" }}>
+                      Invita a familia o amigos y ambos<br />disfrutaréis de transferencias gratuitas.
+                    </p>
+                    <button
+                      onClick={() => toast.info("Función de invitación próximamente disponible")}
+                      className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full font-inter font-bold text-[12px] text-white transition-all hover:opacity-90 active:scale-[0.98] w-full"
+                      style={{ background: "#bc4800" }}
+                    >
+                      <Icon name="person_add" size={13} className="text-white" />
+                      Invitar amigos
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right: family photo */}
+                <div className="relative flex-shrink-0 w-[210px] self-stretch rounded-r-[20px] overflow-hidden">
+                  <Image
+                    src="/familia.png"
+                    alt="Familia"
+                    fill
+                    className="object-cover object-center"
+                  />
+                </div>
               </div>
             </motion.div>
           )}
@@ -335,268 +398,331 @@ export default function SendPage() {
             </motion.div>
           )}
 
-          {/* Step 2+3+4: User mode - single scrollable page */}
+          {/* Step 2+: User mode */}
           {hasBalance && typeof step === "number" && step >= 2 && step <= 4 && sendMode === "user" && (
             <motion.div
               key="step-user"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+              className="pb-28 lg:pb-10"
             >
-              {/* PARA: Phone input (TR6) */}
-              {typeof step === "number" && step >= 2 && (
-                <div className="space-y-3 pb-6 border-b border-[var(--color-outline-variant)]/10">
-                  <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
-                    PARA
-                  </p>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] lg:gap-8 lg:items-start">
 
-                  <div className="space-y-3">
-                    {/* Country code selector */}
-                    <div className="flex gap-3">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="px-3 py-3 rounded-xl bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-inter text-sm border border-[var(--color-outline-variant)] focus:border-[var(--color-primary)] focus:outline-none transition-colors"
-                      >
-                        <option value="+34">ES +34 (España)</option>
-                        <option value="+1-829">DO +1-829 (Rep. Dominicana)</option>
-                      </select>
+                {/* ══ LEFT: Main transfer flow ══ */}
+                <div className="space-y-1.5 mb-8 lg:mb-0">
 
-                      <input
-                        type="tel"
-                        placeholder="612 345 678"
-                        value={phone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        disabled={isSearching}
-                        maxLength={9}
-                        className="flex-1 px-4 py-3 rounded-xl bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] font-inter border border-[var(--color-outline-variant)] focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50"
-                      />
+                  {/* ── Card 1: Destinatario ── */}
+                  <div
+                    className="rounded-[20px] overflow-hidden"
+                    style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                  >
+                    <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Destinatario</p>
                     </div>
-
-                    {/* Beneficiary card */}
-                    {beneficiary && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-2xl bg-[var(--color-surface-container-low)]/50 flex items-center gap-3"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0">
-                          <Icon
-                            name="person"
-                            size={20}
-                            className="text-white"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">
-                            {beneficiary.name}
-                          </p>
-                          <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">
-                            Usuario de Remita
-                          </p>
-                        </div>
-                        <Icon
-                          name="check_circle"
-                          size={20}
-                          className="text-[var(--color-success)]"
-                          filled
-                        />
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* MONTO: Amount input (TR4) */}
-              {typeof step === "number" && step >= 3 && beneficiary && (
-                <div className="space-y-3 pb-6 border-b border-[var(--color-outline-variant)]/10">
-                  <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
-                    MONTO
-                  </p>
-
-                  <div className="text-center space-y-4">
-                    <div className="flex items-baseline justify-center gap-3">
-                      <span className="text-2xl text-[var(--color-primary)] font-bold">
-                        €
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={amount}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(",", ".");
-                          if (!val || /^\d*\.?\d*$/.test(val)) {
-                            setAmount(val);
-                          }
-                        }}
-                        disabled={isSending}
-                        className="text-5xl font-manrope font-bold text-center text-[var(--color-on-surface)] border-0 bg-transparent outline-none max-w-xs placeholder:text-[var(--color-on-surface-variant)]/50"
-                      />
-                    </div>
-
-                    <p className="text-xs text-[var(--color-on-surface-variant)]">
-                      Tu saldo: {formatCurrency(totalBalance)}
-                    </p>
-
-                    {/* Quick amount buttons */}
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {QUICK_AMOUNTS.map((quickAmount) => (
-                        <button
-                          key={quickAmount}
-                          onClick={() => setAmount(String(quickAmount))}
-                          disabled={quickAmount > totalBalance}
-                          className={`px-4 py-2 rounded-full font-inter font-bold text-xs transition-all ${
-                            parseFloat(amount) === quickAmount
-                              ? "bg-[var(--color-primary)] text-white"
-                              : quickAmount > totalBalance
-                              ? "bg-[var(--color-surface-container-low)]/50 text-[var(--color-on-surface-variant)]/50 cursor-not-allowed"
-                              : "bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container)]"
-                          }`}
-                        >
-                          {quickAmount}€
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {amount &&
-                    parseFloat(amount.replace(",", ".")) > totalBalance && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-3 rounded-xl bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-xs font-inter font-medium flex items-center gap-2"
-                      >
-                        <Icon name="warning" size={16} />
-                        Saldo insuficiente. Deposita más fondos para continuar.
-                      </motion.div>
-                    )}
-                </div>
-              )}
-
-              {/* CONCEPTO: Message input (TR4) */}
-              {typeof step === "number" && step >= 3 && beneficiary && (
-                <div className="space-y-3 pb-6 border-b border-[var(--color-outline-variant)]/10">
-                  <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
-                    CONCEPTO
-                  </p>
-
-                  <textarea
-                    placeholder="Añade un mensaje (opcional)"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value.slice(0, 100))}
-                    disabled={isSending}
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] font-inter border border-[var(--color-outline-variant)] focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50 resize-none"
-                    rows={2}
-                  />
-                  <p className="text-xs text-[var(--color-on-surface-variant)]/70">
-                    {message.length}/100 caracteres
-                  </p>
-                </div>
-              )}
-
-              {/* TR5: ENVÍOS RECIENTES */}
-              {step === 2 && (
-                <div className="space-y-3 pb-6 border-b border-[var(--color-outline-variant)]/10">
-                  <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
-                    ENVÍOS RECIENTES
-                  </p>
-
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {transactionsData?.pages?.[0]?.transactions && transactionsData.pages[0].transactions.length > 0 ? (
-                      <>
-                        {transactionsData.pages[0].transactions.slice(0, 3).map((txn) => (
-                          <button
-                            key={txn.id}
-                            onClick={() => {
-                              // Show info that this is a recent transfer
-                              toast.info(`Últimas transacciones: ${formatRelativeDate(txn.createdAt)}`);
-                            }}
-                            className="flex-shrink-0 px-4 py-2 rounded-2xl bg-[var(--color-surface-container-low)] hover:bg-[var(--color-surface-container)] transition-colors whitespace-nowrap"
+                    <div className="px-4 py-3 space-y-2.5">
+                      <div className="flex gap-2">
+                        <div className="relative flex-shrink-0">
+                          <select
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className="appearance-none h-10 pl-3 pr-6 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] font-medium border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors"
+                            style={{ background: "var(--color-surface-container-lowest)" }}
                           >
-                            <p className="font-manrope font-bold text-xs text-[var(--color-on-surface)]">
-                              {formatCurrency(parseFloat(txn.amount))}
-                            </p>
+                            <option value="+34">🇪🇸  +34</option>
+                            <option value="+1-829">🇩🇴  +1-829</option>
+                          </select>
+                          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 opacity-35" width="9" height="9" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <input
+                          type="tel"
+                          placeholder="Número de teléfono"
+                          value={phone}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          disabled={isSearching}
+                          maxLength={9}
+                          className="flex-1 h-10 px-4 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/35"
+                          style={{ background: "var(--color-surface-container-lowest)" }}
+                        />
+                      </div>
+                      {beneficiary && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[12px]"
+                          style={{ background: "rgba(0,62,199,0.05)", border: "1px solid rgba(0,62,199,0.12)" }}
+                        >
+                          <div className="w-7 h-7 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0 font-manrope font-bold text-white text-[12px]">
+                            {beneficiary.name?.[0] ?? "?"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-manrope font-bold text-[var(--color-on-surface)] text-[13px] truncate">{beneficiary.name}</p>
+                            <p className="text-[10px] text-[var(--color-on-surface-variant)]/50 font-inter">Usuario de Remita</p>
+                          </div>
+                          <Icon name="check_circle" size={15} className="text-[var(--color-success-text)] flex-shrink-0" filled />
+                        </motion.div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.08)" }} />
+                        <span className="text-[9.5px] font-inter font-bold uppercase tracking-[0.16em]" style={{ color: "rgba(0,0,0,0.25)" }}>O también</span>
+                        <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.08)" }} />
+                      </div>
+                      <div
+                        className="flex items-center gap-2.5 h-10 px-3.5 rounded-[12px] border transition-colors"
+                        style={{ background: "var(--color-surface-container-lowest)", borderColor: "rgba(0,0,0,0.09)" }}
+                      >
+                        <span className="font-manrope font-bold text-[var(--color-primary)] text-[15px] leading-none">@</span>
+                        <input
+                          type="text"
+                          placeholder="Alias de Remita"
+                          value={alias}
+                          onChange={(e) => setAlias(e.target.value)}
+                          disabled={isSearching}
+                          className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter text-[13px] outline-none placeholder:text-[var(--color-on-surface-variant)]/35"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Card 2: Monto ── */}
+                  <div
+                    className="rounded-[20px] overflow-hidden relative"
+                    style={{
+                      background: "linear-gradient(160deg, #f5f7ff 0%, #ffffff 55%)",
+                      border: "1px solid rgba(0,62,199,0.10)",
+                      boxShadow: "0 3px 16px rgba(0,62,199,0.07), 0 1px 3px rgba(0,0,0,0.03)"
+                    }}
+                  >
+                    <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,62,199,0.06) 0%, transparent 70%)" }} />
+                    <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(0,62,199,0.07)" }}>
+                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Monto a transferir</p>
+                    </div>
+                    <div className="relative px-4 pb-3 space-y-2">
+                      <div className="flex items-baseline justify-center gap-1 pt-1">
+                        <span className="text-[20px] font-manrope font-bold" style={{ color: "var(--color-primary)" }}>€</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0,00"
+                          value={amount}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(",", ".");
+                            if (!val || /^\d*\.?\d*$/.test(val)) setAmount(val);
+                          }}
+                          disabled={isSending}
+                          className="text-[40px] font-manrope font-bold text-center text-[var(--color-on-surface)] border-0 bg-transparent outline-none placeholder:text-[var(--color-on-surface-variant)]/15 w-[150px]"
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <div
+                          className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full"
+                          style={{ background: "rgba(0,62,199,0.06)", border: "1px solid rgba(0,62,199,0.10)" }}
+                        >
+                          <Icon name="account_balance_wallet" size={11} className="text-[var(--color-primary)]" />
+                          <span className="font-inter text-[11px]" style={{ color: "var(--color-primary)" }}>
+                            Disponible: <strong>{formatCurrency(totalBalance)}</strong>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 justify-center">
+                        {QUICK_AMOUNTS.map((q) => (
+                          <button
+                            key={q}
+                            onClick={() => setAmount(String(q))}
+                            disabled={q > totalBalance}
+                            className="px-3.5 py-1 rounded-[10px] font-inter font-bold text-[12px] transition-all"
+                            style={
+                              parseFloat(amount) === q
+                                ? { background: "var(--color-primary)", color: "white", boxShadow: "0 2px 8px rgba(0,62,199,0.25)" }
+                                : q > totalBalance
+                                ? { background: "rgba(0,0,0,0.04)", color: "rgba(0,0,0,0.22)", cursor: "not-allowed" }
+                                : { background: "rgba(0,0,0,0.05)", color: "var(--color-on-surface)" }
+                            }
+                          >
+                            {q}€
                           </button>
                         ))}
-                      </>
-                    ) : (
-                      <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter py-2">
-                        Aún no hay envíos recientes
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* TR8: Divider "O TAMBIÉN" */}
-              {step === 2 && (
-                <div className="flex items-center gap-3 py-4 border-t border-b border-[var(--color-outline-variant)]/10">
-                  <div className="flex-1 h-px bg-[var(--color-outline-variant)]/10" />
-                  <p className="text-xs font-inter font-bold uppercase text-[var(--color-on-surface-variant)]/50">
-                    O TAMBIÉN
-                  </p>
-                  <div className="flex-1 h-px bg-[var(--color-outline-variant)]/10" />
-                </div>
-              )}
-
-              {/* TR7: Alias input (user transfer) */}
-              {step === 2 && (
-                <div className="space-y-3 pb-6">
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] focus-within:border-[var(--color-primary)]">
-                    <span className="font-manrope font-bold text-[var(--color-primary)] text-lg">
-                      @
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Usuario Remita"
-                      value={alias}
-                      onChange={(e) => setAlias(e.target.value)}
-                      disabled={isSearching}
-                      className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter outline-none placeholder:text-[var(--color-on-surface-variant)]/50"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* TR9: SlideToAction confirmation */}
-              {step === 3 && beneficiary && amount && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="pt-4 space-y-6"
-                >
-                  <GlassCard className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Icon
-                        name="verified_user"
-                        size={20}
-                        className="text-[var(--color-success)]"
-                        filled
-                      />
-                      <p className="font-manrope font-bold text-sm text-[var(--color-on-surface)]">
-                        Transferencia segura
-                      </p>
+                      </div>
+                      {amount && parseFloat(amount.replace(",", ".")) > totalBalance && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] bg-[var(--color-error)]/8 border border-[var(--color-error)]/15 text-[var(--color-error)] text-[11.5px] font-inter font-medium"
+                        >
+                          <Icon name="warning" size={14} />
+                          Saldo insuficiente.
+                        </motion.div>
+                      )}
                     </div>
-                    <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">
-                      {beneficiary.name} recibirá {formatCurrency(parseFloat(amount || "0"))}{" "}
-                      al instante sin comisiones.
-                    </p>
-                  </GlassCard>
+                  </div>
 
+                  {/* ── Card 3: Concepto ── */}
+                  <div
+                    className="rounded-[20px] overflow-hidden"
+                    style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                  >
+                    <div className="px-4 py-2.5 flex items-center gap-1.5" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Concepto</p>
+                      <span className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/30">(opcional)</span>
+                    </div>
+                    <div className="px-4 pb-3 pt-2">
+                      <textarea
+                        placeholder="Escribe un mensaje para el destinatario..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value.slice(0, 100))}
+                        disabled={isSending}
+                        rows={1}
+                        className="w-full px-3.5 py-2 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border border-[var(--color-outline-variant)]/40 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/30 resize-none"
+                        style={{ background: "var(--color-surface-container-lowest)" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* ── Transfer summary ── */}
+                  <AnimatePresence>
+                    {beneficiary && amount && parseFloat(amount.replace(",", ".")) > 0 && parseFloat(amount.replace(",", ".")) <= totalBalance && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                        className="flex items-center justify-between px-4 py-3 rounded-[16px]"
+                        style={{ background: "rgba(0,62,199,0.05)", border: "1px solid rgba(0,62,199,0.10)" }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center font-manrope font-bold text-white text-[13px] flex-shrink-0">
+                            {beneficiary.name?.[0] ?? "?"}
+                          </div>
+                          <div>
+                            <p className="font-manrope font-bold text-[var(--color-on-surface)] text-[13px]">{beneficiary.name}</p>
+                            <p className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/50">Recibirá al instante</p>
+                          </div>
+                        </div>
+                        <p className="font-manrope font-bold text-[20px]" style={{ color: "var(--color-primary)" }}>
+                          {formatCurrency(parseFloat(amount.replace(",", ".")))}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* ── Slide CTA ── */}
                   <SlideToAction
                     onConfirm={handleSendConfirm}
-                    label="DESLIZA PARA CONFIRMAR"
+                    label="DESLIZA PARA TRANSFERIR"
                     disabled={
-                      !amount ||
-                      parseFloat(amount.replace(",", ".")) <= 0 ||
+                      !phone || phone.length < 9 || !beneficiary ||
+                      !amount || parseFloat(amount.replace(",", ".")) <= 0 ||
                       parseFloat(amount.replace(",", ".")) > totalBalance
                     }
                     loading={isSending}
                   />
-                </motion.div>
-              )}
+                </div>
+
+                {/* ══ RIGHT: Support panel (desktop only, sticky) ══ */}
+                <div className="hidden lg:flex lg:flex-col lg:gap-4 lg:sticky lg:top-[96px]">
+
+                  {/* Frecuentes card */}
+                  <div
+                    className="rounded-[22px] p-5 space-y-4"
+                    style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]/50">Frecuentes y favoritos</p>
+                      <button
+                        onClick={() => toast.info("Ver todos los contactos próximamente")}
+                        className="text-[11px] font-inter font-bold text-[var(--color-primary)] hover:opacity-65 transition-opacity"
+                      >
+                        Ver todos
+                      </button>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      {[
+                        { name: "Mateo", color: "#003ec7" },
+                        { name: "Lucía", color: "#bc4800" },
+                        { name: "Carlos", color: "#0d9488" },
+                      ].map((contact) => (
+                        <button
+                          key={contact.name}
+                          onClick={() => toast.info(`Seleccionando a ${contact.name}`)}
+                          className="flex flex-col items-center gap-1.5 group transition-all flex-1"
+                        >
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-manrope font-bold text-[16px] transition-transform group-hover:scale-105 ring-2 ring-transparent group-hover:ring-[var(--color-primary)]/20"
+                            style={{ background: contact.color }}
+                          >
+                            {contact.name[0]}
+                          </div>
+                          <p className="font-inter text-[11px] font-medium text-[var(--color-on-surface)] leading-tight">{contact.name}</p>
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => toast.info("Añadir nuevo contacto próximamente")}
+                        className="flex flex-col items-center gap-1.5 group transition-all flex-1"
+                      >
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--color-surface-container-low)] transition-transform group-hover:scale-105 border border-dashed border-[rgba(0,0,0,0.15)]">
+                          <Icon name="add" size={18} className="text-[var(--color-on-surface-variant)]/45" />
+                        </div>
+                        <p className="font-inter text-[11px] font-medium text-[var(--color-on-surface-variant)]/45 leading-tight">Nuevo</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* On-chain benefits card */}
+                  <div
+                    className="rounded-[18px] overflow-hidden"
+                    style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
+                  >
+                    {/* Header */}
+                    <div
+                      className="px-4 py-3.5 flex items-center gap-3"
+                      style={{ background: "rgba(0,62,199,0.04)", borderBottom: "1px solid rgba(0,62,199,0.08)" }}
+                    >
+                      <Icon name="verified_user" size={20} className="text-[var(--color-primary)]" filled />
+                      <p className="font-manrope font-bold text-[15px]" style={{ color: "#003ec7" }}>
+                        Transferencia on-chain
+                      </p>
+                    </div>
+
+                    {/* Features */}
+                    <div className="divide-y divide-[rgba(0,0,0,0.05)]">
+                      {[
+                        {
+                          icon: "bolt",
+                          title: "Liquidación instantánea",
+                          body: "Los fondos se mueven en segundos entre wallets, reduciendo tiempos y fricción operativa.",
+                        },
+                        {
+                          icon: "lock",
+                          title: "Registro inmutable",
+                          body: "Cada transacción queda registrada de forma permanente y verificable en la infraestructura digital.",
+                        },
+                        {
+                          icon: "public",
+                          title: "Disponibilidad 24/7",
+                          body: "Opera en cualquier momento, sin depender de horarios bancarios ni ventanas operativas tradicionales.",
+                        },
+                      ].map(({ icon, title, body }) => (
+                        <div key={title} className="flex items-start gap-3 px-4 py-3.5">
+                          <div
+                            className="w-8 h-8 rounded-[9px] flex items-center justify-center flex-shrink-0 mt-0.5"
+                            style={{ background: "rgba(0,62,199,0.07)" }}
+                          >
+                            <Icon name={icon} size={15} className="text-[var(--color-primary)]" filled />
+                          </div>
+                          <div>
+                            <p className="font-manrope font-bold text-[12.5px] text-[var(--color-on-surface)] leading-tight">{title}</p>
+                            <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/55 mt-0.5 leading-relaxed">{body}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </motion.div>
           )}
 
@@ -747,10 +873,21 @@ export default function SendPage() {
             </motion.div>
           )}
 
-          {/* Processing state */}
-          {step === "processing" && (
+          {/* Processing state — user mode: full-screen premium flow */}
+          {step === "processing" && sendMode === "user" && (
+            <TransferProcessingScreen
+              amount={parseFloat(amount.replace(",", ".")) || 0}
+              recipientName={beneficiary?.name || phone}
+              recipientIdentifier={alias ? `@${alias}` : `${countryCode} ${phone}`}
+              senderName="Eduardo"
+              onComplete={() => router.push("/transactions")}
+            />
+          )}
+
+          {/* Processing state — bank mode: generic spinner */}
+          {step === "processing" && sendMode === "bank" && (
             <motion.div
-              key="processing"
+              key="processing-bank"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center space-y-8 py-12"
@@ -760,26 +897,15 @@ export default function SendPage() {
                   <motion.div
                     key={i}
                     className="w-3 h-3 rounded-full bg-[var(--color-primary)]"
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [0.5, 1, 0.5],
-                    }}
-                    transition={{
-                      duration: 1.2,
-                      delay: i * 0.15,
-                      repeat: Infinity,
-                    }}
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.2, delay: i * 0.15, repeat: Infinity }}
                   />
                 ))}
               </div>
-
               <div className="space-y-3">
                 <h2 className="text-2xl font-manrope font-bold text-[var(--color-on-surface)]">
-                  Enviando dinero...
+                  Procesando transferencia...
                 </h2>
-                <p className="text-sm text-[var(--color-on-surface-variant)] font-inter">
-                  Por favor espera mientras procesamos tu transferencia
-                </p>
               </div>
             </motion.div>
           )}
@@ -884,6 +1010,7 @@ export default function SendPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </main>
     </div>
   );
