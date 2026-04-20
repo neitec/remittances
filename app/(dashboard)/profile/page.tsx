@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { useMe } from "@/lib/hooks/useMe";
-import { useUpdateAlias } from "@/lib/hooks/useUpdateAlias";
+import { useMe } from "@/lib/hooks/queries/useMe";
+import { useUpdateAlias } from "@/lib/hooks/mutations/useUpdateAlias";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";

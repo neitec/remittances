@@ -6,7 +6,7 @@ import { isValidIBAN, friendlyFormatIBAN } from "ibantools";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/Icon";
 import { SlideToAction } from "@/components/ui/SlideToAction";
-import { useAddExternalAccount } from "@/lib/hooks/useAddExternalAccount";
+import { useAddExternalAccount } from "@/lib/hooks/mutations/useAddExternalAccount";
 import { ExternalAccount } from "@/lib/types";
 import { toast } from "sonner";
 

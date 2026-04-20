@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useAccounts } from "@/lib/hooks/useAccounts";
+import { useAccounts } from "@/lib/hooks/queries/useAccounts";
 import { DashboardSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
 import { formatRelativeDate } from "@/lib/format";
-import { useTransactions } from "@/lib/hooks/useTransactions";
+import { useTransactions } from "@/lib/hooks/queries/useTransactions";
 import { HeroBalanceCard } from "@/components/features/Dashboard/HeroBalanceCard";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";

@@ -1,11 +1,9 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { AppShell } from "@/components/nav/AppShell";
-
-const isDesignMode = process.env.NEXT_PUBLIC_DESIGN_MODE === "true";
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { AppShell } from '@/components/nav/AppShell';
 
 export default function DashboardLayout({
   children,
@@ -16,14 +14,13 @@ export default function DashboardLayout({
   const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    if (isDesignMode) return;
     if (isLoading) return;
     if (!isAuthenticated) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [isAuthenticated, isLoading, router]);
 
-  if (!isDesignMode && (isLoading || !isAuthenticated)) {
+  if (isLoading || !isAuthenticated) {
     return null;
   }
 

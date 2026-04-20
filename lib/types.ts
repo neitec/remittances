@@ -17,6 +17,7 @@ export interface ExternalAccount {
   accountNumber: string; // Masked ****1234
   bankName: string;
   currency: string;
+  createdAt?: string;
 }
 
 export enum TransactionType {
@@ -26,7 +27,7 @@ export enum TransactionType {
 
 export interface Transaction {
   id: string;
-  type: string; // "DEPOSIT" | "TRANSFER" (uppercase)
+  type: TransactionType;
   status: string; // "PENDING" | "COMPLETED" | "FAILED"
   sourceAccount?: Account | null;
   destinationAccount?: Account | null;

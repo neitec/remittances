@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useDeposit } from "@/lib/hooks/useDeposit";
+import { useDeposit } from "@/lib/hooks/mutations/useDeposit";
 import { ExternalAccountSelector } from "@/components/features/ExternalAccountSelector";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
@@ -270,16 +270,16 @@ export default function DepositPage() {
                     Próximamente — Más divisas
                   </h2>
                   <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70">
-                    Lanzamos soporte para 4 divisas en 2025 — actívate antes que nadie
+                    Lanzamos soporte para 4 divisas en 2026 — actívate antes que nadie
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { code: "USD", name: "Dólares", flag: "🇺🇸", color: "#003ec7" },
-                    { code: "DOP", name: "Pesos RD", flag: "🇩🇴", color: "#bc4800" },
-                    { code: "COP", name: "Pesos CO", flag: "🇨🇴", color: "#0d9488" },
-                    { code: "MXN", name: "Pesos MX", flag: "🇲🇽", color: "#7c3aed" },
+                    { code: "USD", name: "Dólares", icon: "dollar", color: "#003ec7" },
+                    { code: "DOP", name: "Pesos RD", icon: "currency_pound", color: "#bc4800" },
+                    { code: "COP", name: "Pesos CO", icon: "currency_exchange", color: "#0d9488" },
+                    { code: "MXN", name: "Pesos MX", icon: "paid", color: "#7c3aed" },
                   ].map((currency) => (
                     <motion.button
                       key={currency.code}
@@ -299,7 +299,14 @@ export default function DepositPage() {
                         }}
                       />
                       <div className="relative z-10">
-                        <p className="text-3xl mb-1">{currency.flag}</p>
+                        <div className="flex justify-center mb-2">
+                          <div
+                            className="w-10 h-10 rounded-[10px] flex items-center justify-center"
+                            style={{ background: `${currency.color}15`, color: currency.color }}
+                          >
+                            <Icon name={currency.icon} size={18} />
+                          </div>
+                        </div>
                         <p className="font-manrope font-bold text-sm text-[var(--color-on-surface)]">{currency.code}</p>
                         <p className="text-xs text-[var(--color-on-surface-variant)]/60 mt-0.5">{currency.name}</p>
                         <motion.span

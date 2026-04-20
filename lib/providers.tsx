@@ -8,31 +8,21 @@ import { Toaster } from "@/components/ui/sonner";
 import { queryClient } from "@/lib/query-client";
 import { apiClient } from "@/lib/api";
 
-/**
- * Conditional Auth0 setup
- * If NEXT_PUBLIC_AUTH0_CLIENT_ID is not set, Auth0Provider is skipped
- */
 function Auth0Wrapper({ children }: { children: ReactNode }) {
   const auth0ClientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
-  const isDesignMode = process.env.NEXT_PUBLIC_DESIGN_MODE === "true";
-
-  // In design mode, skip Auth0 entirely — mock data is used instead
-  if (isDesignMode) {
-    return <>{children}</>;
-  }
 
   if (!auth0ClientId) {
-    throw new Error("NEXT_PUBLIC_AUTH0_CLIENT_ID is not configured. Auth0 is required.");
+    throw new Error('NEXT_PUBLIC_AUTH0_CLIENT_ID is not configured. Auth0 is required.');
   }
 
   return (
     <Auth0Provider
-      domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN || ""}
+      domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN || ''}
       clientId={auth0ClientId}
       authorizationParams={{
         redirect_uri: process.env.NEXT_PUBLIC_AUTH0_REDIRECT_URI,
         audience: process.env.NEXT_PUBLIC_AUTH0_AUDIENCE,
-        scope: "openid profile email",
+        scope: 'openid profile email',
       }}
       cacheLocation="localstorage"
     >

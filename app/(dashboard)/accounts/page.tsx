@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { BankAccountForm } from "@/components/features/BankAccountForm";
-import { useExternalAccounts } from "@/lib/hooks/useExternalAccounts";
+import { useExternalAccounts } from "@/lib/hooks/queries/useExternalAccounts";
 import { AccountsSkeleton } from "@/components/motion/ShimmerSkeleton";
 import { maskIBAN } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";

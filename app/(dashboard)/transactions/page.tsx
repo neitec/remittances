@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTransactions } from "@/lib/hooks/useTransactions";
+import { useTransactions } from "@/lib/hooks/queries/useTransactions";
 import { TransactionType } from "@/lib/api";
 import { formatCurrency, formatDate, formatRelativeDate } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";

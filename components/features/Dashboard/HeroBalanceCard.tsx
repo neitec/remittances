@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CountUp } from "@/components/motion/CountUp";
-import { useExchangeRate } from "@/lib/hooks/useExchangeRate";
+import { useExchangeRate } from "@/lib/hooks/queries/useExchangeRate";
 
 interface HeroBalanceCardProps {
   balanceEur: number;
