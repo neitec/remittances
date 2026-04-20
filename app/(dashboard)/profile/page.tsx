@@ -84,6 +84,7 @@ export default function ProfilePage() {
   const displayName = user?.name ?? userData?.name ?? "Usuario";
   const displayEmail = user?.email ?? userData?.email ?? "No disponible";
   const userAlias = userData?.alias ?? "";
+  const phoneValue = userData?.phone ?? "";
 
   const initials = displayName
     .split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase();
@@ -91,6 +92,9 @@ export default function ProfilePage() {
   const openEdit = (field: EditField) => {
     if (field === "alias") {
       setDraftValue(userAlias);
+      setEditField(field);
+    } else if (field === "phone") {
+      setDraftValue(phoneValue);
       setEditField(field);
     }
   };
@@ -368,7 +372,7 @@ export default function ProfilePage() {
               className="w-full flex items-center justify-center gap-2.5 h-14 rounded-[18px] font-inter font-bold text-[13px] transition-all hover:opacity-80 active:scale-[0.99]"
               style={{ background: "rgba(188,72,0,0.07)", color: "#bc4800", border: "1px solid rgba(188,72,0,0.12)" }}
             >
-              <Icon name="logout" size={18} style={{ color: "#bc4800" }} />
+              <Icon name="logout" size={18} />
               Cerrar sesión
             </button>
 

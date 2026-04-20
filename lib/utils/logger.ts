@@ -5,7 +5,7 @@
 type LogLevel = "debug" | "info" | "warn" | "error";
 
 interface LogEntry {
-  timestamp: string;
+  timestamp?: string;
   level: LogLevel;
   service: string;
   action: string;

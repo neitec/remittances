@@ -3,7 +3,8 @@
 export interface Account {
   id: string;
   currency: string;
-  balance: string; // Backend returns Big.toFixed(2)
+  balance: string;
+  userId: string;
 }
 
 export interface DashboardData {
@@ -21,13 +22,6 @@ export interface ExternalAccount {
 export enum TransactionType {
   DEPOSIT = "DEPOSIT",
   TRANSFER = "TRANSFER",
-}
-
-export interface Account {
-  id: string;
-  currency: string;
-  balance: string;
-  userId: string;
 }
 
 export interface Transaction {

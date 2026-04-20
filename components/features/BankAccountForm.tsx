@@ -29,7 +29,7 @@ function validateIBAN(raw: string): { error: string | null; formatted: string } 
   if (!isValidIBAN(cleaned)) {
     return { error: "IBAN no válido", formatted: cleaned };
   }
-  return { error: null, formatted: friendlyFormatIBAN(cleaned) };
+  return { error: null, formatted: friendlyFormatIBAN(cleaned) || cleaned };
 }
 
 export function BankAccountForm({

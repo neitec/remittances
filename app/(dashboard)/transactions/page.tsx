@@ -7,7 +7,7 @@ import { TransactionType } from "@/lib/api";
 import { formatCurrency, formatDate, formatRelativeDate } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import { StaggerChildren, MotionItem } from "@/components/motion/StaggerChildren";
-import { TransactionsSkeleton } from "@/components/motion/ShimmerSkeleton";
+import { TransactionsSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
 import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { cn } from "@/lib/utils";

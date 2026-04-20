@@ -205,14 +205,14 @@ export default function DepositPage() {
                   {/* Blue orb — pulled inward so it reaches center */}
                   <motion.div
                     animate={{ x: [0, 12, -5, 0], y: [0, -8, 10, 0] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: 8, repeat: Infinity }}
                     className="absolute -top-20 -left-10 w-[460px] h-[340px] rounded-full"
                     style={{ background: "radial-gradient(ellipse at 38% 38%, rgba(0,82,255,0.13) 0%, rgba(0,82,255,0.05) 45%, transparent 70%)" }}
                   />
                   {/* Warm orb — pulled inward so it reaches center */}
                   <motion.div
                     animate={{ x: [0, -12, 9, 0], y: [0, 10, -7, 0] }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                    transition={{ duration: 10, repeat: Infinity, delay: 1.5 }}
                     className="absolute -bottom-20 -right-10 w-[440px] h-[320px] rounded-full"
                     style={{ background: "radial-gradient(ellipse at 62% 62%, rgba(188,72,0,0.13) 0%, rgba(188,72,0,0.05) 45%, transparent 70%)" }}
                   />
@@ -289,13 +289,13 @@ export default function DepositPage() {
                       transition={{ duration: 0.2 }}
                       className="relative overflow-hidden rounded-[18px] p-4 text-center border-2 border-dashed cursor-not-allowed transition-all group"
                       style={{
-                        borderColor: `${color}33`,
-                        background: `linear-gradient(135deg, ${color}04 0%, ${color}02 100%)`,
+                        borderColor: `${currency.color}33`,
+                        background: `linear-gradient(135deg, ${currency.color}04 0%, ${currency.color}02 100%)`,
                       }}
                     >
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                         style={{
-                          background: `linear-gradient(135deg, ${color}08 0%, ${color}04 100%)`,
+                          background: `linear-gradient(135deg, ${currency.color}08 0%, ${currency.color}04 100%)`,
                         }}
                       />
                       <div className="relative z-10">
@@ -306,7 +306,7 @@ export default function DepositPage() {
                           animate={{ opacity: [0.7, 1, 0.7] }}
                           transition={{ duration: 2, repeat: Infinity }}
                           className="inline-block text-[9px] font-inter font-bold uppercase tracking-[0.08em] px-2 py-1 rounded-full mt-2"
-                          style={{ background: `${color}20`, color }}
+                          style={{ background: `${currency.color}20`, color: currency.color }}
                         >
                           Muy pronto
                         </motion.span>
@@ -384,7 +384,7 @@ export default function DepositPage() {
                       background: "radial-gradient(circle, rgba(100,168,255,0.22) 0%, transparent 68%)",
                     }}
                     animate={{ x: [0, 20, 6, 0], y: [0, 14, 28, 0] }}
-                    transition={{ duration: 16, ease: "easeInOut", repeat: Infinity }}
+                    transition={{ duration: 16, repeat: Infinity }}
                   />
                   {/* Layer: bottom-right depth orb */}
                   <motion.div
@@ -395,7 +395,7 @@ export default function DepositPage() {
                       background: "radial-gradient(circle, rgba(0,48,190,0.52) 0%, transparent 68%)",
                     }}
                     animate={{ x: [0, -16, -28, 0], y: [0, -10, -20, 0] }}
-                    transition={{ duration: 22, ease: "easeInOut", repeat: Infinity, delay: 2.5 }}
+                    transition={{ duration: 22, repeat: Infinity, delay: 2.5 }}
                   />
                   {/* Layer: orange warm bloom */}
                   <motion.div
@@ -406,7 +406,7 @@ export default function DepositPage() {
                       background: "radial-gradient(circle, rgba(255,185,110,0.09) 0%, rgba(255,140,60,0.04) 45%, transparent 68%)",
                     }}
                     animate={{ x: [0, -18, -30, -18, 0], y: [0, 20, 10, -4, 0] }}
-                    transition={{ duration: 19, ease: "easeInOut", repeat: Infinity, delay: 1.2 }}
+                    transition={{ duration: 19, repeat: Infinity, delay: 1.2 }}
                   />
                   {/* Layer: grid */}
                   <div

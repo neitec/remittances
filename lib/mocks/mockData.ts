@@ -13,11 +13,13 @@ export const mockAccount: Account[] = [
     id: "ACC-001",
     currency: "EUR",
     balance: "5432.50",
+    userId: "USER-001",
   },
   {
     id: "ACC-002",
     currency: "USD",
     balance: "2100.75",
+    userId: "USER-001",
   },
 ];
 
@@ -96,7 +98,8 @@ export const mockPaginatedTransactions: PaginatedTransactions = {
 export const mockBeneficiary: Beneficiary = {
   id: "BEN-001",
   phone: "+34 600 123 456",
-  name: "Juan García López",
+  name: "Juan",
+  surname: "García López",
   country: "ES",
   email: "juan@example.com",
 };

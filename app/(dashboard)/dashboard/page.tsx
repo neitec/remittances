@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAccounts } from "@/lib/hooks/useAccounts";
-import { DashboardSkeleton } from "@/components/motion/ShimmerSkeleton";
+import { DashboardSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
 import { formatRelativeDate } from "@/lib/format";
 import { useTransactions } from "@/lib/hooks/useTransactions";
 import { HeroBalanceCard } from "@/components/features/Dashboard/HeroBalanceCard";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.48, delay, ease: [0.16, 1, 0.3, 1] },
+  transition: { duration: 0.48, delay },
 });
 
 export default function DashboardPage() {
@@ -134,13 +134,13 @@ export default function DashboardPage() {
                       <div className="absolute inset-0" style={{ background: "linear-gradient(130deg, rgba(188,72,0,0.06) 0%, rgba(200,80,10,0.03) 50%, rgba(188,72,0,0.05) 100%)" }} />
                       <motion.div
                         animate={{ x: [0, 10, -5, 0], y: [0, -7, 9, 0] }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                        transition={{ duration: 8, repeat: Infinity }}
                         className="absolute -top-16 -left-8 w-[320px] h-[220px] rounded-full"
                         style={{ background: "radial-gradient(ellipse at 38% 38%, rgba(188,72,0,0.12) 0%, rgba(188,72,0,0.04) 45%, transparent 70%)" }}
                       />
                       <motion.div
                         animate={{ x: [0, -10, 8, 0], y: [0, 9, -6, 0] }}
-                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                        transition={{ duration: 10, repeat: Infinity, delay: 1.5 }}
                         className="absolute -bottom-16 -right-8 w-[300px] h-[200px] rounded-full"
                         style={{ background: "radial-gradient(ellipse at 62% 62%, rgba(188,72,0,0.11) 0%, rgba(200,60,0,0.04) 45%, transparent 70%)" }}
                       />

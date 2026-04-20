@@ -382,7 +382,7 @@ export function HeroBalanceCard({ balanceEur, isLoading, equivalenceDop }: HeroB
             </p>
             {isLoading ? (
               <div className="h-6 bg-white/10 rounded-lg w-44 animate-pulse" />
-            ) : (
+            ) : calculatedDop ? (
               <div className="flex items-center gap-4 flex-wrap">
                 <p className="text-white/75 font-inter font-semibold text-[15px] tabular">
                   RD${" "}
@@ -430,6 +430,8 @@ export function HeroBalanceCard({ balanceEur, isLoading, equivalenceDop }: HeroB
                   )}
                 </div>
               </div>
+            ) : (
+              <p className="text-white/50 text-[13px] font-inter">Cargando...</p>
             )}
           </div>
         </div>

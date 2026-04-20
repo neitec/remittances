@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@/components/ui/Icon";
-import { useAuth } from "@/lib/hooks/useAuth";
 import { toast } from "sonner";
 
 const container = {
