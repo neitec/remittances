@@ -3,15 +3,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useMe } from "@/lib/hooks/useMe";
+import { useUpdateAlias } from "@/lib/hooks/useUpdateAlias";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
 import { ProfileSkeleton } from "@/components/motion/ShimmerSkeleton";
 
 type EditField = "phone" | "alias" | null;
-
-const MOCK_PHONE = "+34 616 494 838";
-const MOCK_ALIAS = "eduardrem";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -65,11 +64,13 @@ function InfoRow({
 }
 
 export default function ProfilePage() {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
+  const { data: userData, isLoading: meLoading } = useMe();
+  const { mutate: updateAlias } = useUpdateAlias();
   const [editField, setEditField] = useState<EditField>(null);
-  const [phoneValue, setPhoneValue] = useState(MOCK_PHONE);
-  const [aliasValue, setAliasValue] = useState(MOCK_ALIAS);
   const [draftValue, setDraftValue] = useState("");
+
+  const isLoading = authLoading || meLoading;
 
   if (isLoading) {
     return (
@@ -80,22 +81,32 @@ export default function ProfilePage() {
     );
   }
 
-  const displayName = "Eduardo";
-  const displayEmail = "eduardo@neitec.io";
+  const displayName = user?.name ?? userData?.name ?? "Usuario";
+  const displayEmail = user?.email ?? userData?.email ?? "No disponible";
+  const userAlias = userData?.alias ?? "";
 
   const initials = displayName
     .split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase();
 
   const openEdit = (field: EditField) => {
-    setDraftValue(field === "phone" ? phoneValue : aliasValue);
-    setEditField(field);
+    if (field === "alias") {
+      setDraftValue(userAlias);
+      setEditField(field);
+    }
   };
 
   const saveEdit = () => {
-    if (editField === "phone") setPhoneValue(draftValue);
-    if (editField === "alias") setAliasValue(draftValue);
-    setEditField(null);
-    toast.success("Datos actualizados correctamente");
+    if (editField === "alias" && draftValue.trim()) {
+      updateAlias(draftValue.trim(), {
+        onSuccess: () => {
+          setEditField(null);
+          toast.success("Alias actualizado correctamente");
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Error al actualizar alias");
+        },
+      });
+    }
   };
 
   return (
@@ -283,7 +294,7 @@ export default function ProfilePage() {
                     <InfoRow
                       icon="alternate_email"
                       label="Alias"
-                      value={aliasValue ? `@${aliasValue}` : undefined}
+                      value={userAlias ? `@${userAlias}` : undefined}
                       placeholder="Añade un alias único"
                       onEdit={() => openEdit("alias")}
                       accent

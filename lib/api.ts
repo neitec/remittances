@@ -126,5 +126,12 @@ export const transactionsAPI = {
   },
 };
 
+export const remittanceAPI = {
+  getExchangeRate: async (from: string, to: string): Promise<{ rate: number; from: string; to: string }> => {
+    const response = await apiClient.get(`/remittance/fx?from=${from}&to=${to}`);
+    return response.data;
+  },
+};
+
 // ============ RE-EXPORT CLIENT ============
 export { apiClient } from "@/lib/api/client";

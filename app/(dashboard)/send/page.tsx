@@ -25,6 +25,8 @@ import Image from "next/image";
 type Step = 1 | 2 | 3 | 4 | "processing" | "success" | "error";
 type SendMode = "user" | "bank";
 
+type ActiveField = "phone" | "alias" | null;
+
 export default function SendPage() {
   const router = useRouter();
   const { data: dashboardData, isLoading: isAccountsLoading } = useAccounts();
@@ -40,6 +42,8 @@ export default function SendPage() {
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [beneficiaryError, setBeneficiaryError] = useState("");
+  const [activeField, setActiveField] = useState<ActiveField>(null);
   const [submitted, setSubmitted] = useState(false);
   const { mutate: searchBeneficiary, data: beneficiary, isPending: isSearching } =
     useBeneficiary();
@@ -54,15 +58,30 @@ export default function SendPage() {
 
   // Handle phone change - search beneficiary when phone is complete
   const handlePhoneChange = (value: string) => {
+    if (alias) return; // Alias has content, don't allow phone input
     setPhone(value);
+    setActiveField(value ? "phone" : null);
+    setBeneficiaryError("");
     if (value.length === 9) {
       const fullPhone = countryCode + value;
       searchBeneficiary(fullPhone, {
-        onError: () => {
-          toast.error("Contacto no encontrado");
+        onError: (error) => {
+          const errorMsg = error instanceof Error ? error.message : "Contacto no encontrado";
+          setBeneficiaryError(errorMsg);
+        },
+        onSuccess: () => {
+          setBeneficiaryError("");
         },
       });
     }
+  };
+
+  // Handle alias change
+  const handleAliasChange = (value: string) => {
+    if (phone) return; // Phone has content, don't allow alias input
+    setAlias(value);
+    setActiveField(value ? "alias" : null);
+    setBeneficiaryError("");
   };
 
   const handleSendConfirm = () => {
@@ -452,12 +471,24 @@ export default function SendPage() {
                           placeholder="Número de teléfono"
                           value={phone}
                           onChange={(e) => handlePhoneChange(e.target.value)}
-                          disabled={isSearching}
+                          disabled={isSearching || activeField === "alias"}
                           maxLength={9}
-                          className="flex-1 h-10 px-4 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/35"
+                          className={`flex-1 h-10 px-4 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/35 ${
+                            activeField === "alias" ? "opacity-40 pointer-events-none border-[var(--color-outline-variant)]/30" : "border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)]"
+                          }`}
                           style={{ background: "var(--color-surface-container-lowest)" }}
                         />
                       </div>
+                      {beneficiaryError && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-1.5 text-[11px] font-inter text-[var(--color-error)] px-1"
+                        >
+                          <Icon name="error_outline" size={13} />
+                          {beneficiaryError}
+                        </motion.p>
+                      )}
                       {beneficiary && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
@@ -481,19 +512,35 @@ export default function SendPage() {
                         <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.08)" }} />
                       </div>
                       <div
-                        className="flex items-center gap-2.5 h-10 px-3.5 rounded-[12px] border transition-colors"
-                        style={{ background: "var(--color-surface-container-lowest)", borderColor: "rgba(0,0,0,0.09)" }}
+                        className={`flex items-center gap-2.5 h-10 px-3.5 rounded-[12px] border transition-colors ${
+                          activeField === "phone" ? "opacity-40 pointer-events-none border-[rgba(0,0,0,0.05)]" : "border-[rgba(0,0,0,0.09)]"
+                        }`}
+                        style={{ background: "var(--color-surface-container-lowest)" }}
                       >
-                        <span className="font-manrope font-bold text-[var(--color-primary)] text-[15px] leading-none">@</span>
+                        <span className={`font-manrope font-bold text-[15px] leading-none ${activeField === "phone" ? "text-[var(--color-on-surface-variant)]/35" : "text-[var(--color-primary)]"}`}>@</span>
                         <input
                           type="text"
                           placeholder="Alias de Remita"
                           value={alias}
-                          onChange={(e) => setAlias(e.target.value)}
-                          disabled={isSearching}
+                          onChange={(e) => handleAliasChange(e.target.value)}
+                          disabled={isSearching || activeField === "phone"}
                           className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter text-[13px] outline-none placeholder:text-[var(--color-on-surface-variant)]/35"
                         />
                       </div>
+                      <AnimatePresence>
+                        {beneficiary && !beneficiaryError && sendMode === "user" && step === 2 && (
+                          <motion.button
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            onClick={() => setStep(3)}
+                            className="w-full h-11 rounded-[14px] font-manrope font-bold text-[14px] text-white bg-[var(--color-primary)] transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 mt-3 shadow-[0_4px_16px_rgba(0,62,199,0.22)]"
+                          >
+                            Continuar
+                            <Icon name="arrow_forward" size={16} className="text-white" />
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
 

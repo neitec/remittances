@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CountUp } from "@/components/motion/CountUp";
+import { useExchangeRate } from "@/lib/hooks/useExchangeRate";
 
 interface HeroBalanceCardProps {
   balanceEur: number;
@@ -176,8 +177,9 @@ function GlobeVisual() {
 }
 
 export function HeroBalanceCard({ balanceEur, isLoading, equivalenceDop }: HeroBalanceCardProps) {
-  const dopRate = 61.5;
-  const calculatedDop = equivalenceDop || balanceEur * dopRate;
+  const { data: fxData } = useExchangeRate("EUR", "DOP");
+  const dopRate = fxData?.rate ?? null;
+  const calculatedDop = equivalenceDop || (dopRate ? balanceEur * dopRate : null);
   const [showInfo, setShowInfo] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -421,9 +423,11 @@ export function HeroBalanceCard({ balanceEur, isLoading, equivalenceDop }: HeroB
                       $
                     </div>
                   </div>
-                  <span className="text-white/75 text-[10px] font-inter font-medium tabular">
-                    1 EUR = {dopRate} DOP
-                  </span>
+                  {dopRate && (
+                    <span className="text-white/75 text-[10px] font-inter font-medium tabular">
+                      1 EUR = {dopRate.toFixed(2)} DOP
+                    </span>
+                  )}
                 </div>
               </div>
             )}

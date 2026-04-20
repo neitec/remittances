@@ -263,89 +263,58 @@ export default function DepositPage() {
                 </div>
               </motion.button>
 
-              {/* USD — coming soon */}
-              <motion.button
-                onClick={() => toast.info("Depósitos en dólares estarán disponibles muy pronto")}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.995 }}
-                transition={{ duration: 0.15 }}
-                className="w-full text-left relative overflow-hidden rounded-[22px] p-5 cursor-pointer"
-                style={{
-                  background: "rgba(248,249,250,0.5)",
-                  border: "2px dashed var(--color-outline-variant)",
-                }}
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
-                    style={{ background: "var(--color-surface-container-high)" }}
-                  >
-                    <Icon name="payments" size={22} className="text-[var(--color-on-surface-variant)]/35" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-manrope font-bold text-[var(--color-on-surface)]/50">
-                      Depósito en Dólares (USD)
-                    </h3>
-                    <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/40 mt-1 leading-relaxed">
-                      Transferencias ACH desde bancos de Estados Unidos. Estamos trabajando para habilitar esta opción.
-                    </p>
-                  </div>
-                  <span
-                    className="flex-shrink-0 text-[10px] font-inter font-bold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full"
-                    style={{ background: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" }}
-                  >
-                    Próximamente
-                  </span>
+              {/* Coming soon section — Multiple currencies with FOMO */}
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h2 className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)]">
+                    Próximamente — Más divisas
+                  </h2>
+                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70">
+                    Lanzamos soporte para 4 divisas en 2025 — actívate antes que nadie
+                  </p>
                 </div>
-              </motion.button>
 
-              {/* Secondary methods — 2-col grid + phone */}
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                {[
-                  { icon: "alternate_email", label: "Vía Alias", sub: "Recibe de otros usuarios.", bg: "#f0f3fa" },
-                  { icon: "qr_code_scanner", label: "Escaneo QR", sub: "Transferencia inmediata.", bg: "#e8efff" },
-                ].map((item) => (
-                  <motion.button
-                    key={item.label}
-                    onClick={() => toast.info(`${item.label} estará disponible muy pronto`)}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ duration: 0.15 }}
-                    className="p-4 rounded-[22px] text-left opacity-70 hover:opacity-90 transition-opacity cursor-pointer"
-                    style={{ background: item.bg }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center mb-2.5"
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { code: "USD", name: "Dólares", flag: "🇺🇸", color: "#003ec7" },
+                    { code: "DOP", name: "Pesos RD", flag: "🇩🇴", color: "#bc4800" },
+                    { code: "COP", name: "Pesos CO", flag: "🇨🇴", color: "#0d9488" },
+                    { code: "MXN", name: "Pesos MX", flag: "🇲🇽", color: "#7c3aed" },
+                  ].map((currency) => (
+                    <motion.button
+                      key={currency.code}
+                      onClick={() => toast.info(`Depósitos en ${currency.name} estarán disponibles muy pronto`)}
+                      whileHover={{ y: -2, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ duration: 0.2 }}
+                      className="relative overflow-hidden rounded-[18px] p-4 text-center border-2 border-dashed cursor-not-allowed transition-all group"
                       style={{
-                        background: "rgba(255,255,255,0.85)",
-                        boxShadow: "0 1px 6px rgba(0,62,199,0.10)",
+                        borderColor: `${color}33`,
+                        background: `linear-gradient(135deg, ${color}04 0%, ${color}02 100%)`,
                       }}
                     >
-                      <Icon name={item.icon} size={20} className="text-[var(--color-primary)]" />
-                    </div>
-                    <p className="font-manrope font-bold text-sm text-[var(--color-on-surface)]">{item.label}</p>
-                    <p className="text-xs font-inter text-[var(--color-on-surface-variant)] mt-1">{item.sub}</p>
-                  </motion.button>
-                ))}
-              </div>
-
-              <motion.button
-                onClick={() => toast.info("Depósitos por teléfono estarán disponibles muy pronto")}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.995 }}
-                transition={{ duration: 0.15 }}
-                className="w-full text-left rounded-[22px] p-4 opacity-70 hover:opacity-90 transition-opacity cursor-pointer"
-                style={{ background: "var(--color-surface-container-lowest)", border: "1px solid rgba(0,0,0,0.05)" }}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon name="phone_iphone" size={24} className="text-[var(--color-on-surface-variant)]" />
-                  <div>
-                    <p className="font-manrope font-bold text-sm text-[var(--color-on-surface)]">Número de Teléfono</p>
-                    <p className="text-xs font-inter text-[var(--color-on-surface-variant)] mt-0.5">Contactos rápidos.</p>
-                  </div>
-                  <Icon name="chevron_right" size={24} className="text-[var(--color-on-surface-variant)] ml-auto" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                        style={{
+                          background: `linear-gradient(135deg, ${color}08 0%, ${color}04 100%)`,
+                        }}
+                      />
+                      <div className="relative z-10">
+                        <p className="text-3xl mb-1">{currency.flag}</p>
+                        <p className="font-manrope font-bold text-sm text-[var(--color-on-surface)]">{currency.code}</p>
+                        <p className="text-xs text-[var(--color-on-surface-variant)]/60 mt-0.5">{currency.name}</p>
+                        <motion.span
+                          animate={{ opacity: [0.7, 1, 0.7] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className="inline-block text-[9px] font-inter font-bold uppercase tracking-[0.08em] px-2 py-1 rounded-full mt-2"
+                          style={{ background: `${color}20`, color }}
+                        >
+                          Muy pronto
+                        </motion.span>
+                      </div>
+                    </motion.button>
+                  ))}
                 </div>
-              </motion.button>
+              </div>
             </motion.div>
           )}
 
