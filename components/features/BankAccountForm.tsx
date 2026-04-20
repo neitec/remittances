@@ -356,7 +356,7 @@ export function BankAccountForm({
               </div>
 
               {/* Actions — Cancelar left (orange), Guardar right (blue) */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 max-w-sm">
                 {onCancel && (
                   <button
                     type="button"
@@ -366,7 +366,7 @@ export function BankAccountForm({
                       setBankName("");
                       setAccountNumberError(null);
                     }}
-                    className="flex-1 h-11 rounded-xl font-manrope font-bold text-sm cursor-pointer transition-transform active:scale-[0.97]"
+                    className="flex-1 min-w-[100px] h-11 rounded-xl font-manrope font-bold text-sm cursor-pointer transition-transform active:scale-[0.97]"
                     style={{
                       border: "1.5px solid #bc4800",
                       color: "#bc4800",
