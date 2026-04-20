@@ -8,5 +8,7 @@ export function useExchangeRate(from: string, to: string) {
     queryKey: ["exchangeRate", from, to],
     queryFn: () => remittanceAPI.getExchangeRate(from, to),
     staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: false, // TODO: Enable when /remittance/fx endpoint is implemented
+    initialData: { rate: 59.5, from, to },
   });
 }
