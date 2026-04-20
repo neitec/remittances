@@ -14,8 +14,13 @@ import { apiClient } from "@/lib/api";
  */
 function Auth0Wrapper({ children }: { children: ReactNode }) {
   const auth0ClientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
+  const isDesignMode = process.env.NEXT_PUBLIC_DESIGN_MODE === "true";
 
-  // Auth0 is required
+  // In design mode, skip Auth0 entirely — mock data is used instead
+  if (isDesignMode) {
+    return <>{children}</>;
+  }
+
   if (!auth0ClientId) {
     throw new Error("NEXT_PUBLIC_AUTH0_CLIENT_ID is not configured. Auth0 is required.");
   }

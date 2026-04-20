@@ -146,17 +146,24 @@ export function BankAccountForm({
               <label className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                 País del banco
               </label>
-              <select
-                value={country}
-                onChange={(e) => setCountry(e.target.value as keyof typeof COUNTRIES)}
-                className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] font-inter border border-[var(--color-outline-variant)] focus:border-[var(--color-primary)] focus:outline-none transition-colors"
-              >
-                {Object.entries(COUNTRIES).map(([code, data]) => (
-                  <option key={code} value={code}>
-                    {code} - {data.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value as keyof typeof COUNTRIES)}
+                  className="w-full appearance-none px-4 py-3 pr-10 rounded-2xl bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] font-inter border border-[var(--color-outline-variant)] focus:border-[var(--color-primary)] focus:outline-none transition-colors"
+                >
+                  {Object.entries(COUNTRIES).map(([code, data]) => (
+                    <option key={code} value={code}>
+                      {code} - {data.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 9l6 6 6-6" stroke="var(--color-on-surface-variant)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* EXT3: IBAN with country flag */}
@@ -239,37 +246,40 @@ export function BankAccountForm({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="space-y-4 p-6 rounded-2xl bg-[var(--color-surface-container-low)]/50 border border-[var(--color-outline-variant)]/20"
+            className="space-y-7 p-10 rounded-2xl bg-[var(--color-surface-container-low)]/50 border border-[var(--color-outline-variant)]/20"
           >
-            <p className="font-manrope font-bold text-[var(--color-on-surface)]">
-              Nueva cuenta bancaria
-            </p>
-
-            <form className="space-y-4">
+            <form className="space-y-7">
               {/* Country selector */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <label className="font-inter font-bold text-[10px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                   País del banco
                 </label>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value as keyof typeof COUNTRIES)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--color-surface-container)] text-[var(--color-on-surface)] font-inter text-sm border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors"
-                >
-                  {Object.entries(COUNTRIES).map(([code, data]) => (
-                    <option key={code} value={code}>
-                      {code} - {data.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value as keyof typeof COUNTRIES)}
+                    className="w-full appearance-none px-4 py-3 pr-10 rounded-xl bg-[var(--color-surface-container)] text-[var(--color-on-surface)] font-inter text-sm border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors"
+                  >
+                    {Object.entries(COUNTRIES).map(([code, data]) => (
+                      <option key={code} value={code}>
+                        {code} - {data.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 9l6 6 6-6" stroke="var(--color-on-surface-variant)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
+                    </svg>
+                  </div>
+                </div>
               </div>
 
               {/* IBAN with flag */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <label className="font-inter font-bold text-[10px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                   IBAN
                 </label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)]/50 focus-within:border-[var(--color-primary)]">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)]/50 focus-within:border-[var(--color-primary)] transition-colors">
                   <span className="px-2 py-0.5 rounded-lg bg-[var(--color-primary-fixed)] text-[var(--color-primary)] font-inter font-bold text-xs">{country}</span>
                   <input
                     type="text"
@@ -288,7 +298,7 @@ export function BankAccountForm({
               </div>
 
               {/* Bank name */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <label className="font-inter font-bold text-[10px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                   Nombre del banco
                 </label>
@@ -298,19 +308,12 @@ export function BankAccountForm({
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
                   disabled={isPending}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--color-surface-container)] text-[var(--color-on-surface)] font-inter text-sm border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-container)] text-[var(--color-on-surface)] font-inter text-sm border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={isPending || !!accountNumberError || !bankName.trim() || !accountNumber.trim()}
-                  className="flex-1 h-10 rounded-lg bg-[var(--color-primary)] text-white font-manrope font-bold text-sm transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  {isPending ? "Guardando..." : "Guardar cuenta"}
-                </button>
+              {/* Actions — Cancelar left (orange), Guardar right (blue) */}
+              <div className="flex gap-3 pt-2">
                 {onCancel && (
                   <button
                     type="button"
@@ -320,12 +323,65 @@ export function BankAccountForm({
                       setBankName("");
                       setAccountNumberError(null);
                     }}
-                    disabled={isPending}
-                    className="flex-1 h-10 rounded-lg border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] font-manrope font-bold text-sm transition-colors hover:bg-[var(--color-surface-container-low)] disabled:opacity-50 disabled:pointer-events-none"
+                    className="flex-1 h-11 rounded-xl font-manrope font-bold text-sm cursor-pointer transition-transform active:scale-[0.97]"
+                    style={{
+                      border: "1.5px solid #bc4800",
+                      color: "#bc4800",
+                      background: "rgba(188,72,0,0.04)",
+                      boxShadow: "0 2px 10px rgba(188,72,0,0.10)",
+                    }}
+                    onMouseEnter={e => {
+                      const btn = e.currentTarget;
+                      btn.style.background = "rgba(188,72,0,0.10)";
+                      btn.style.boxShadow = "0 4px 18px rgba(188,72,0,0.22)";
+                      btn.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={e => {
+                      const btn = e.currentTarget;
+                      btn.style.background = "rgba(188,72,0,0.04)";
+                      btn.style.boxShadow = "0 2px 10px rgba(188,72,0,0.10)";
+                      btn.style.transform = "translateY(0)";
+                    }}
+                    onMouseDown={e => {
+                      e.currentTarget.style.transform = "translateY(0) scale(0.97)";
+                      e.currentTarget.style.boxShadow = "0 1px 5px rgba(188,72,0,0.10)";
+                    }}
+                    onMouseUp={e => {
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 4px 18px rgba(188,72,0,0.22)";
+                    }}
                   >
                     Cancelar
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="relative flex-1 h-11 rounded-xl text-white font-manrope font-bold text-sm cursor-pointer overflow-hidden active:scale-[0.97] transition-transform"
+                  style={{ background: "#003ec7", boxShadow: "0 2px 12px rgba(0,62,199,0.25)" }}
+                  onMouseEnter={e => {
+                    const btn = e.currentTarget;
+                    btn.style.background = "#0035b0";
+                    btn.style.boxShadow = "0 4px 20px rgba(0,62,199,0.45)";
+                    btn.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={e => {
+                    const btn = e.currentTarget;
+                    btn.style.background = "#003ec7";
+                    btn.style.boxShadow = "0 2px 12px rgba(0,62,199,0.25)";
+                    btn.style.transform = "translateY(0)";
+                  }}
+                  onMouseDown={e => {
+                    e.currentTarget.style.transform = "translateY(0) scale(0.97)";
+                    e.currentTarget.style.boxShadow = "0 1px 6px rgba(0,62,199,0.2)";
+                  }}
+                  onMouseUp={e => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,62,199,0.45)";
+                  }}
+                >
+                  {isPending ? "Guardando..." : "Guardar"}
+                </button>
               </div>
             </form>
           </motion.div>

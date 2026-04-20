@@ -2,77 +2,137 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTransactions } from "@/lib/hooks/useTransactions";
 import { TransactionType } from "@/lib/api";
 import { formatCurrency, formatDate, formatRelativeDate } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import { StaggerChildren, MotionItem } from "@/components/motion/StaggerChildren";
-import { SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
+import { TransactionsSkeleton } from "@/components/motion/ShimmerSkeleton";
 import { useSearchParams } from "next/navigation";
+import { AppHeader } from "@/components/nav/AppHeader";
+import { cn } from "@/lib/utils";
+
+type FilterType = TransactionType | "all" | "withdrawal";
+
+const FILTER_TABS: { label: string; value: FilterType; icon: string; disabled?: boolean }[] = [
+  { label: "Todas",      value: "all",                   icon: "format_list_bulleted" },
+  { label: "Depósitos",  value: TransactionType.DEPOSIT,  icon: "south_west" },
+  { label: "Envíos",     value: TransactionType.TRANSFER, icon: "north_east" },
+  { label: "Retiradas",  value: "withdrawal",             icon: "account_balance", disabled: true },
+];
 
 export default function TransactionsPage() {
   const searchParams = useSearchParams();
-  const [filterType, setFilterType] = useState<TransactionType | "all">("all");
+  const [filterType, setFilterType] = useState<FilterType>("all");
   const [selectedTxn, setSelectedTxn] = useState<string | null>(searchParams.get("detail"));
+  const apiFilter = filterType === "all" || filterType === "withdrawal" ? "all" : filterType;
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useTransactions({
-    type: filterType,
+    type: apiFilter,
   });
 
   const allTransactions = data?.pages.flatMap((p) => p.transactions) ?? [];
 
-  // Filter transactions by selected type (frontend validation)
-  const transactions = filterType === "all"
+  const transactions = filterType === "all" || filterType === "withdrawal"
     ? allTransactions
     : allTransactions.filter(t => t.type === filterType);
 
   const detailTxn = selectedTxn ? allTransactions.find(t => t.id === selectedTxn) : null;
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <AppHeader />
+        <TransactionsSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] pb-32 lg:pb-0">
-      {/* TopAppBar */}
-      <motion.header
-        className="fixed top-0 left-0 right-0 lg:left-64 z-40 h-16 flex items-center gap-4 px-6 bg-[rgba(248,249,250,0.7)] backdrop-blur-[48px]"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4 }}
-      >
-        <div className="flex-1 text-center">
-          <p className="font-manrope font-bold text-lg text-[var(--color-on-surface)]">
-            Historial
-          </p>
-        </div>
-      </motion.header>
+      {/* Header */}
+      <AppHeader />
 
       <motion.div
-        className="pt-24 px-6 py-6 max-w-2xl mx-auto"
+        className="pt-[84px] px-5 py-6 lg:pl-12 lg:pr-10"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Tabs
-          value={filterType}
-          onValueChange={(val) => setFilterType(val as TransactionType | "all")}
-          className="w-full"
+        <div className="max-w-[900px]">
+        {/* ── Filter bar ── */}
+        <div
+          className="flex items-center gap-1 mb-7 p-1 rounded-[14px] w-fit"
+          style={{
+            background: "var(--color-surface-container-low)",
+            border: "1px solid rgba(0,0,0,0.05)",
+          }}
         >
-          <TabsList className="grid w-full grid-cols-3 bg-[var(--color-surface-container-low)]/50 border border-[var(--color-outline-variant)]/20 mb-6 rounded-xl">
-            <TabsTrigger value="all" className="text-xs sm:text-sm data-[state=active]:bg-[var(--color-primary)] data-[state=active]:text-white">
-              Todas
-            </TabsTrigger>
-            <TabsTrigger value={TransactionType.DEPOSIT} className="text-xs sm:text-sm data-[state=active]:bg-[var(--color-primary)] data-[state=active]:text-white">
-              Depósitos
-            </TabsTrigger>
-            <TabsTrigger value={TransactionType.TRANSFER} className="text-xs sm:text-sm data-[state=active]:bg-[var(--color-primary)] data-[state=active]:text-white">
-              Envíos
-            </TabsTrigger>
-          </TabsList>
+          {FILTER_TABS.map((tab) => {
+            const isActive = filterType === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => !tab.disabled && setFilterType(tab.value)}
+                disabled={tab.disabled}
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-inter font-medium transition-all duration-150 select-none",
+                  isActive
+                    ? "text-white shadow-sm"
+                    : tab.disabled
+                    ? "text-[var(--color-on-surface-variant)]/30 cursor-not-allowed"
+                    : "text-[var(--color-on-surface-variant)]/70 hover:text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container)]"
+                )}
+                style={isActive ? {
+                  background: "var(--color-primary)",
+                  boxShadow: "0 2px 8px rgba(0,62,199,0.25)",
+                } : {}}
+              >
+                <Icon
+                  name={tab.icon}
+                  size={14}
+                  className={cn(
+                    isActive ? "text-white" : tab.disabled ? "opacity-30" : "text-[var(--color-on-surface-variant)]/60"
+                  )}
+                />
+                {tab.label}
+                {tab.disabled && (
+                  <span
+                    className="text-[9px] font-inter font-bold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-full ml-0.5"
+                    style={{
+                      background: "var(--color-primary-fixed)",
+                      color: "var(--color-primary)",
+                      opacity: 0.7,
+                    }}
+                  >
+                    Pronto
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-          {Object.values({
-            all: "all",
-            deposit: TransactionType.DEPOSIT,
-            transfer: TransactionType.TRANSFER,
-          }).map((val) => (
-            <TabsContent key={val} value={val}>
+        {/* ── Content ── */}
+        <div>
+          {filterType === "withdrawal" ? (
+            <div className="py-16 text-center">
+              <div
+                className="w-14 h-14 rounded-[18px] mx-auto mb-4 flex items-center justify-center"
+                style={{ background: "var(--color-surface-container-low)" }}
+              >
+                <Icon name="account_balance" size={24} className="text-[var(--color-on-surface-variant)]/40" />
+              </div>
+              <p className="font-manrope font-semibold text-[var(--color-on-surface)] text-[14px] mb-1">
+                Retiradas disponibles próximamente
+              </p>
+              <p className="text-[13px] text-[var(--color-on-surface-variant)]/55 font-inter">
+                Podrás retirar fondos a tu cuenta bancaria en pesos dominicanos.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {[filterType].map((val) => (
+                <div key={val}>
               {isLoading ? (
                 <div className="space-y-2">
                   <SkeletonTransactionRow />
@@ -86,22 +146,21 @@ export default function TransactionsPage() {
                       <MotionItem key={txn.id}>
                         <motion.button
                           onClick={() => setSelectedTxn(txn.id)}
-                          className="w-full flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface-container-low)]/30 hover:bg-[var(--color-surface-container-low)] transition-colors text-left mb-2"
+                          className="w-full flex items-center justify-between pl-4 pr-8 py-4 rounded-2xl bg-[var(--color-surface-container-low)]/30 hover:bg-[rgba(0,62,199,0.07)] transition-colors text-left mb-2 border-b border-[rgba(0,0,0,0.05)]"
                           whileHover={{ x: 4 }}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div
-                              className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 ${
+                              className={`flex items-center justify-center w-10 h-10 rounded-[13px] flex-shrink-0 ${
                                 txn.type === "TRANSFER"
-                                  ? "bg-[var(--color-error)]/10"
-                                  : "bg-[var(--color-success)]/10"
+                                  ? "bg-[var(--color-tertiary-fixed)] text-[var(--color-tertiary)]"
+                                  : "bg-emerald-50 text-emerald-600"
                               }`}
                             >
-                              {txn.type === "TRANSFER" ? (
-                                <Icon name="trending_flat" size={20} className="text-[var(--color-error)]" filled />
-                              ) : (
-                                <Icon name="trending_flat" size={20} className="text-[var(--color-success)]" />
-                              )}
+                              <Icon
+                                name={txn.type === "TRANSFER" ? "north_east" : "south_west"}
+                                size={20}
+                              />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm truncate">
@@ -114,19 +173,19 @@ export default function TransactionsPage() {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p
-                              className={`font-manrope font-bold text-sm ${
+                              className={`font-manrope font-bold text-sm tabular ${
                                 txn.type === "TRANSFER"
-                                  ? "text-[var(--color-error)]"
-                                  : "text-[var(--color-success)]"
+                                  ? "text-[var(--color-on-surface)]"
+                                  : "text-[var(--color-primary)]"
                               }`}
                             >
-                              {txn.type === "TRANSFER" ? "-" : "+"}
+                              {txn.type === "TRANSFER" ? "−" : "+"}
                               {formatCurrency(parseFloat(txn.amount))}
                             </p>
                             <p className="text-xs text-[var(--color-on-surface-variant)]/60 font-inter flex items-center justify-end gap-1 mt-1">
                               {txn.status === "COMPLETED" ? (
                                 <>
-                                  <Icon name="check_circle" size={14} className="text-[var(--color-success)]" filled />
+                                  <Icon name="check_circle" size={14} className="text-[var(--color-success-text)]" filled />
                                 </>
                               ) : (
                                 <>
@@ -165,9 +224,11 @@ export default function TransactionsPage() {
                   <p className="text-[var(--color-on-surface-variant)]/70 text-sm font-inter">No hay transacciones</p>
                 </div>
               )}
-            </TabsContent>
-          ))}
-        </Tabs>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Transaction Detail Modal */}
         <AnimatePresence>
@@ -238,7 +299,7 @@ export default function TransactionsPage() {
                       <div className="flex items-center gap-1">
                         {detailTxn.status === "COMPLETED" ? (
                           <>
-                            <Icon name="check_circle" size={16} className="text-[var(--color-success)]" filled />
+                            <Icon name="check_circle" size={16} className="text-[var(--color-success-text)]" filled />
                             <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">Completado</p>
                           </>
                         ) : (
@@ -302,6 +363,7 @@ export default function TransactionsPage() {
             </>
           )}
         </AnimatePresence>
+        </div>
       </motion.div>
     </div>
   );
