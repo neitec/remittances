@@ -25,8 +25,8 @@ function getResponse(msg: string): string {
     return "Para enviar dinero ve a 'Transfiere' en el menú lateral. Puedes hacer transferencias P2P o a cuentas bancarias de forma instantánea.";
   if (t.includes("deposit") || t.includes("recib"))
     return "Para depositar euros dirígete a 'Deposita'. Recibirás instrucciones SEPA para transferir desde tu banco habitual.";
-  if (t.includes("wallet") || t.includes("on-chain") || t.includes("chain") || t.includes("usdt"))
-    return "Tu wallet on-chain te permite operar con una versión digital del euro. Próximamente también podrás recibir pagos en USDT y otras divisas digitales.";
+  if (t.includes("wallet") || t.includes("on-chain") || t.includes("chain") || t.includes("usdc"))
+    return "Tu wallet on-chain te permite operar con una versión digital del euro. Próximamente también podrás recibir pagos en USDC y otras divisas digitales.";
   if (t.includes("comi") || t.includes("cost") || t.includes("precio") || t.includes("cuanto"))
     return "Remita opera con comisiones muy bajas gracias a la infraestructura on-chain. Los costes exactos se muestran antes de confirmar cada operación.";
   return "Entendido. Estoy aquí para ayudarte con tu wallet, transferencias y depósitos. ¿Tienes alguna pregunta concreta?";

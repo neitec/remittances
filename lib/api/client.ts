@@ -51,8 +51,11 @@ apiClient.interceptors.response.use(
       // Conflict - e.g., alias already taken
       logger.warn('API', 'Conflict (409)', { message: errorMessage });
     } else if (status === 404) {
-      // Not found - e.g., beneficiary not found
-      logger.warn('API', 'Not found (404)', { message: errorMessage });
+      // Not found - only log for non-optional endpoints
+      const isFxEndpoint = url?.includes('/remittance/fx');
+      if (!isFxEndpoint) {
+        logger.warn('API', 'Not found (404)', { message: errorMessage });
+      }
     }
 
     return Promise.reject(error);

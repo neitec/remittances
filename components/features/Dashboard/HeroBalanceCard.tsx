@@ -22,7 +22,7 @@ const INFO_SECTIONS = [
   },
   {
     title: "Pagos globales",
-    body: "Además, podrás recibir pagos desde el exterior por tus servicios en divisas digitales como USDT, ampliando tu alcance a nivel global. Esos fondos también podrán retirarse en tu cuenta bancaria dominicana de forma sencilla.",
+    body: "Además, podrás recibir pagos desde el exterior por tus servicios en divisas digitales como USDC, ampliando tu alcance a nivel global. Esos fondos también podrán retirarse en tu cuenta bancaria dominicana de forma sencilla.",
   },
 ];
 
