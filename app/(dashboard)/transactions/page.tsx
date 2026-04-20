@@ -7,7 +7,7 @@ import { TransactionType } from "@/lib/api";
 import { formatCurrency, formatDate, formatRelativeDate } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import { StaggerChildren, MotionItem } from "@/components/motion/StaggerChildren";
-import { SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
+import { TransactionsSkeleton } from "@/components/motion/ShimmerSkeleton";
 import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,15 @@ export default function TransactionsPage() {
     : allTransactions.filter(t => t.type === filterType);
 
   const detailTxn = selectedTxn ? allTransactions.find(t => t.id === selectedTxn) : null;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <AppHeader />
+        <TransactionsSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] pb-32 lg:pb-0">

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
+import { ProfileSkeleton } from "@/components/motion/ShimmerSkeleton";
 
 type EditField = "phone" | "alias" | null;
 
@@ -64,11 +65,20 @@ function InfoRow({
 }
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [editField, setEditField] = useState<EditField>(null);
   const [phoneValue, setPhoneValue] = useState(MOCK_PHONE);
   const [aliasValue, setAliasValue] = useState(MOCK_ALIAS);
   const [draftValue, setDraftValue] = useState("");
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <AppHeader />
+        <ProfileSkeleton />
+      </div>
+    );
+  }
 
   const displayName = "Eduardo";
   const displayEmail = "eduardo@neitec.io";

@@ -100,9 +100,9 @@ export function SlideToAction({
           disabled && "opacity-45 pointer-events-none"
         )}
         style={{
-          background: "rgba(0,0,0,0.045)",
+          background: "rgba(0,62,199,0.12)",
           boxShadow:
-            "inset 0 2px 7px rgba(0,0,0,0.10), inset 0 1px 2px rgba(0,0,0,0.07)",
+            "inset 0 2px 7px rgba(0,62,199,0.10), inset 0 1px 2px rgba(0,62,199,0.07)",
           zIndex: 1,
         }}
       >

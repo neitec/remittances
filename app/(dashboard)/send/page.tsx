@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { TransferProcessingScreen } from "@/components/features/TransferProcessingScreen";
+import { SendSkeleton } from "@/components/motion/ShimmerSkeleton";
 import Image from "next/image";
 
 type Step = 1 | 2 | 3 | 4 | "processing" | "success" | "error";
@@ -26,7 +27,7 @@ type SendMode = "user" | "bank";
 
 export default function SendPage() {
   const router = useRouter();
-  const { data: dashboardData } = useAccounts();
+  const { data: dashboardData, isLoading: isAccountsLoading } = useAccounts();
   const { data: externalAccounts } = useExternalAccounts();
   const { data: transactionsData } = useTransactions({ type: "TRANSFER" });
   const [step, setStep] = useState<Step>(1);
@@ -99,6 +100,15 @@ export default function SendPage() {
       return () => clearTimeout(timer);
     }
   }, [step, router]);
+
+  if (isAccountsLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <AppHeader />
+        <SendSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
@@ -338,7 +348,7 @@ export default function SendPage() {
                   </h3>
                   <div className="w-fit space-y-2">
                     <p className="text-[12.5px] font-inter leading-relaxed" style={{ color: "rgba(60,30,0,0.55)" }}>
-                      Invita a familia o amigos y ambos<br />disfrutaréis de transferencias gratuitas.
+                      Invita a familia o amigos y ambos disfrutaréis de transferencias gratuitas.
                     </p>
                     <button
                       onClick={() => toast.info("Función de invitación próximamente disponible")}
@@ -608,6 +618,7 @@ export default function SendPage() {
                   </AnimatePresence>
 
                   {/* ── Slide CTA ── */}
+                  <div className="mt-8">
                   <SlideToAction
                     onConfirm={handleSendConfirm}
                     label="DESLIZA PARA TRANSFERIR"
@@ -618,6 +629,7 @@ export default function SendPage() {
                     }
                     loading={isSending}
                   />
+                  </div>
                 </div>
 
                 {/* ══ RIGHT: Support panel (desktop only, sticky) ══ */}

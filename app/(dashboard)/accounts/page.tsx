@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { BankAccountForm } from "@/components/features/BankAccountForm";
 import { useExternalAccounts } from "@/lib/hooks/useExternalAccounts";
+import { AccountsSkeleton } from "@/components/motion/ShimmerSkeleton";
 import { maskIBAN } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import Link from "next/link";
@@ -12,6 +13,15 @@ import Link from "next/link";
 export default function AccountsPage() {
   const { data: externalAccounts = [], isLoading } = useExternalAccounts();
   const [showForm, setShowForm] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <AppHeader showBack onBack={() => window.history.back()} />
+        <AccountsSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">

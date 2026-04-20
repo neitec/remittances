@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAccounts } from "@/lib/hooks/useAccounts";
-import { SkeletonCard, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
+import { DashboardSkeleton } from "@/components/motion/ShimmerSkeleton";
 import { formatRelativeDate } from "@/lib/format";
 import { useTransactions } from "@/lib/hooks/useTransactions";
 import { HeroBalanceCard } from "@/components/features/Dashboard/HeroBalanceCard";
@@ -20,6 +20,15 @@ const fadeUp = (delay = 0) => ({
 export default function DashboardPage() {
   const { data: dashboardData, isLoading, isError } = useAccounts();
   const { data: transactionsData } = useTransactions();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <AppHeader />
+        <DashboardSkeleton />
+      </div>
+    );
+  }
 
   if (isError) {
     return (
@@ -47,11 +56,7 @@ export default function DashboardPage() {
 
         {/* Hero Balance Card — full width */}
         <motion.div {...fadeUp(0)} className="mb-7">
-          {isLoading ? (
-            <SkeletonCard />
-          ) : (
-            <HeroBalanceCard balanceEur={totalBalance} isLoading={isLoading} />
-          )}
+          <HeroBalanceCard balanceEur={totalBalance} isLoading={false} />
         </motion.div>
 
         {/*
@@ -61,7 +66,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-5 xl:grid xl:grid-cols-2 xl:gap-6">
 
           {/* ── LEFT COLUMN ── */}
-          <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-4">
 
             {/* Operaciones */}
             <motion.section {...fadeUp(0.08)}>
@@ -69,7 +74,7 @@ export default function DashboardPage() {
                 Operaciones
               </h2>
 
-              <div className="space-y-[22px]">
+              <div className="flex flex-col gap-[16px]">
 
                 {/* DEPOSITAR — incoming funds */}
                 <Link href="/deposit">
@@ -85,7 +90,7 @@ export default function DashboardPage() {
                   >
                     {/* RIGHT-TO-LEFT shimmer — suggests money arriving inward */}
                     <div className="absolute inset-0 translate-x-full group-hover:-translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-l from-transparent via-white/[0.08] to-transparent pointer-events-none" />
-                    <div className="relative flex items-center gap-4 px-5 py-[18px]">
+                    <div className="relative flex items-center gap-4 px-5 py-[13px]">
                       {/* Icon: pulses and nudges DOWN on hover (incoming, south_west direction) */}
                       <div className="relative flex-shrink-0">
                         <span className="absolute inset-0 rounded-full scale-100 opacity-0 group-hover:scale-[1.45] group-hover:opacity-100 transition-all duration-500 ease-out" style={{ background: "rgba(5,150,105,0.14)" }} />
@@ -99,16 +104,6 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-manrope font-bold text-[15px] text-[var(--color-on-surface)] leading-tight">Deposita</p>
                         <p className="text-[12px] font-inter mt-0.5" style={{ color: "rgba(5,150,105,0.65)" }}>Fondos vía SEPA</p>
-                      </div>
-                      {/* Rail: arrow_back (←) = funds arriving toward wallet */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="h-[2px] rounded-full bg-emerald-300/50 w-6 group-hover:w-10 transition-all duration-300 ease-out" />
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:-translate-x-[2px]"
-                          style={{ background: "rgba(5,150,105,0.12)", border: "1px solid rgba(5,150,105,0.25)" }}
-                        >
-                          <Icon name="arrow_back" size={14} className="text-emerald-600" />
-                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -150,7 +145,7 @@ export default function DashboardPage() {
                         style={{ background: "radial-gradient(ellipse at 62% 62%, rgba(188,72,0,0.11) 0%, rgba(200,60,0,0.04) 45%, transparent 70%)" }}
                       />
                     </motion.div>
-                    <div className="relative flex items-center gap-4 px-5 py-[18px]">
+                    <div className="relative flex items-center gap-4 px-5 py-[13px]">
                       <div className="relative flex-shrink-0">
                         <span className="absolute inset-0 rounded-full scale-100 opacity-0 group-hover:scale-[1.45] group-hover:opacity-100 transition-all duration-500 ease-out" style={{ background: "rgba(188,72,0,0.12)" }} />
                         <div
@@ -163,16 +158,6 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-manrope font-bold text-[15px] text-[var(--color-on-surface)] leading-tight">Transfiere</p>
                         <p className="text-[12px] font-inter mt-0.5" style={{ color: "rgba(188,72,0,0.55)" }}>A otro usuario o retira a una cuenta bancaria</p>
-                      </div>
-                      {/* Rail: arrow_forward (→) = funds departing outward */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="h-[2px] rounded-full w-6 group-hover:w-10 transition-all duration-300 ease-out" style={{ background: "rgba(188,72,0,0.22)" }} />
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:translate-x-[2px]"
-                          style={{ background: "rgba(188,72,0,0.10)", border: "1px solid rgba(188,72,0,0.25)" }}
-                        >
-                          <span style={{ color: "#bc4800" }}><Icon name="arrow_forward" size={14} /></span>
-                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -198,7 +183,7 @@ export default function DashboardPage() {
                       className="text-[10px] font-inter font-bold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full flex-shrink-0"
                       style={{ background: "var(--color-primary-fixed)", color: "var(--color-primary)" }}
                     >
-                      Pronto
+                      Próximamente
                     </span>
                   </div>
                 </div>

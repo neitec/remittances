@@ -46,11 +46,8 @@ export function AppHeader({ onBack, showBack }: AppHeaderProps) {
   };
 
   return (
-    <motion.header
+    <header
       className="fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-6 lg:pl-[calc(208px+2rem)] lg:pr-8"
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
       style={{
         background: "rgba(248, 249, 250, 0.75)",
         backdropFilter: "blur(24px)",
@@ -202,6 +199,6 @@ export function AppHeader({ onBack, showBack }: AppHeaderProps) {
           <Icon name="qr_code_2" size={18} className="text-[var(--color-on-surface)]" />
         </div>
       </div>
-    </motion.header>
+    </header>
   );
 }
