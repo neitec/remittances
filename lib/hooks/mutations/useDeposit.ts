@@ -10,7 +10,7 @@ export function useDeposit() {
 
   return useMutation<DepositInstruction, Error, DepositRequest>({
     mutationFn: async (data) =>
-      depositsEndpoint.initiate(data.amount, data.externalAccountId),
+      depositsEndpoint.initiate(data.amount || undefined, data.externalAccountId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions() });

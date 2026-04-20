@@ -4,12 +4,15 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDeposit } from "@/lib/hooks/mutations/useDeposit";
 import { ExternalAccountSelector } from "@/components/features/ExternalAccountSelector";
+import { DepositAmountSelector } from "@/components/features/DepositAmountSelector";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
 
 type DepositMethod = "EUR" | "DOP";
-type Step = 1 | 2 | 4;
+type Step = 1 | 2 | 3 | 4;
+
+const DEPOSIT_AMOUNT_ENABLED = process.env.NEXT_PUBLIC_DEPOSIT_AMOUNT_ENABLED === "true";
 
 const DEPOSIT_METHODS = [
   {
@@ -41,6 +44,7 @@ export default function DepositPage() {
   const [direction, setDirection] = useState(1);
   const [selectedMethod, setSelectedMethod] = useState<DepositMethod>("EUR");
   const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [selectedAmount, setSelectedAmount] = useState<string>("");
   const { mutate: initiateDeposit, isPending, data: depositInstruction } = useDeposit();
 
   const goToStep = (newStep: Step, dir: number = 1) => {
@@ -54,8 +58,18 @@ export default function DepositPage() {
       toast.error("Selecciona una cuenta bancaria");
       return;
     }
+
+    if (DEPOSIT_AMOUNT_ENABLED) {
+      goToStep(3);
+    } else {
+      submitDeposit(id);
+    }
+  };
+
+  const submitDeposit = (accountId: string) => {
+    const amount = selectedAmount || "0";
     initiateDeposit(
-      { externalAccountId: id, amount: "0" },
+      { externalAccountId: accountId, amount: amount || undefined },
       {
         onSuccess: () => goToStep(4),
         onError: (err) => toast.error(err.message),
@@ -129,14 +143,23 @@ export default function DepositPage() {
               <span className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/30 self-center">›</span>
               <div>
                 <span
-                  className="text-[11px] font-inter font-semibold uppercase tracking-[0.2em]"
-                  style={{ color: "var(--color-primary)" }}
+                  className={`text-[11px] font-inter font-semibold uppercase tracking-[0.2em] ${
+                    step === 2 || (step === 3 && DEPOSIT_AMOUNT_ENABLED) || step === 4
+                      ? "text-[var(--color-primary)]"
+                      : "text-[var(--color-on-surface-variant)]/50"
+                  }`}
                 >
                   DEPÓSITO DE EUROS
                 </span>
                 <div
                   className="mt-1.5 h-[3px] rounded-full"
-                  style={{ background: "linear-gradient(90deg, #0052ff 0%, #bc4800 100%)", width: "100%" }}
+                  style={{
+                    background:
+                      step === 2 || (step === 3 && DEPOSIT_AMOUNT_ENABLED) || step === 4
+                        ? "linear-gradient(90deg, #0052ff 0%, #bc4800 100%)"
+                        : "var(--color-on-surface-variant)/15",
+                    width: "100%",
+                  }}
                 />
               </div>
             </>
@@ -345,6 +368,27 @@ export default function DepositPage() {
                 onContinue={() => handleDeposit()}
                 onNewAccountSaved={handleNewAccountSaved}
                 showInlineCreate={true}
+              />
+            </motion.div>
+          )}
+
+          {/* Step 3: Select Deposit Amount (Development Mode) */}
+          {step === 3 && DEPOSIT_AMOUNT_ENABLED && (
+            <motion.div
+              key="step3"
+              custom={direction}
+              variants={slideVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.38, ease: [0.25, 0.1, 0.25, 1] }}
+              className="max-w-[1088px]"
+            >
+              <DepositAmountSelector
+                selectedAmount={selectedAmount}
+                onSelectAmount={setSelectedAmount}
+                onBack={() => goToStep(2, -1)}
+                onContinue={() => submitDeposit(selectedAccount)}
               />
             </motion.div>
           )}

@@ -90,7 +90,7 @@ export interface TransferResult {
 
 export interface DepositRequest {
   externalAccountId?: string;
-  amount: string; // String Big number
+  amount?: string; // String Big number — optional, required only for mock mode
 }
 
 export interface AddExternalAccountRequest {
