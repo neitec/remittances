@@ -152,9 +152,9 @@ function GlobeVisual() {
       {/* ── Node A — origin (upper-left) + € label ── */}
       <motion.circle
         cx={nA.x} cy={nA.y} r={9}
-        fill="rgba(100,168,255,0.10)"
-        animate={{ r: [9, 13, 9], opacity: [0.10, 0.22, 0.10] }}
+        animate={{ opacity: [0.10, 0.22, 0.10] }}
         transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
+        style={{ fill: "rgba(100,168,255,0.10)" }}
       />
       <circle cx={nA.x} cy={nA.y} r={4}   fill="rgba(155,205,255,0.24)" />
       <circle cx={nA.x} cy={nA.y} r={2.2} fill="rgba(220,238,255,0.88)" />
@@ -162,9 +162,9 @@ function GlobeVisual() {
       {/* ── Node B — destination (right) ── */}
       <motion.circle
         cx={nB.x} cy={nB.y} r={7}
-        fill="rgba(100,168,255,0.08)"
-        animate={{ r: [7, 11, 7], opacity: [0.08, 0.18, 0.08] }}
+        animate={{ opacity: [0.08, 0.18, 0.08] }}
         transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut", delay: 1.8 }}
+        style={{ fill: "rgba(100,168,255,0.08)" }}
       />
       <circle cx={nB.x} cy={nB.y} r={3.2} fill="rgba(155,205,255,0.20)" />
       <circle cx={nB.x} cy={nB.y} r={1.8} fill="rgba(220,238,255,0.80)" />
