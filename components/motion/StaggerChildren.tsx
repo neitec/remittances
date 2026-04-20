@@ -7,6 +7,7 @@ interface StaggerChildrenProps {
   children: ReactNode;
   delay?: number;
   stagger?: number;
+  skipAnimation?: boolean;
 }
 
 const containerVariants = {
@@ -33,11 +34,12 @@ export function StaggerChildren({
   children,
   delay = 0,
   stagger,
+  skipAnimation = false,
 }: StaggerChildrenProps) {
   return (
     <motion.div
       variants={containerVariants}
-      initial="hidden"
+      initial={skipAnimation ? "visible" : "hidden"}
       animate="visible"
       custom={delay}
     >

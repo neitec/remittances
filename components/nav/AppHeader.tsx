@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "next/navigation";
@@ -11,31 +9,12 @@ interface AppHeaderProps {
   showBack?: boolean;
 }
 
-const MOCK_NOTIFICATION = {
-  id: "N-001",
-  icon: "south_west" as const,
-  title: "Depósito recibido",
-  body: "Has recibido +500,00 € vía SEPA en tu wallet on-chain.",
-  time: "Hace 2 horas",
-};
-
 export function AppHeader({ onBack, showBack }: AppHeaderProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const [showNotif, setShowNotif] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!showNotif) return;
-    const handler = (e: MouseEvent) => {
-      if (!notifRef.current?.contains(e.target as Node)) setShowNotif(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showNotif]);
-
-  const userName = "Eduardo";
-  const initials = "E";
+  const userName = user?.name?.split(" ")[0] ?? "Usuario";
+  const initials = user?.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) ?? "U";
 
   const handleBack = () => {
     if (onBack) {
@@ -101,92 +80,7 @@ export function AppHeader({ onBack, showBack }: AppHeaderProps) {
       {/* Right: Bell + QR */}
       <div className="flex items-center gap-2">
 
-        {/* Bell notification */}
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => setShowNotif((v) => !v)}
-            className="relative w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all hover:scale-105 cursor-pointer"
-            style={{
-              background: showNotif
-                ? "var(--color-surface-container)"
-                : "var(--color-surface-container-low)",
-              border: "1px solid rgba(0,0,0,0.05)",
-            }}
-            aria-label="Notificaciones"
-          >
-            <Icon name="notifications" size={18} className="text-[var(--color-on-surface)]" />
-            <span
-              className="absolute -top-1 -right-1 w-[16px] h-[16px] rounded-full flex items-center justify-center text-white font-inter font-bold"
-              style={{
-                background: "var(--color-tertiary-container)",
-                fontSize: "9px",
-                lineHeight: 1,
-              }}
-            >
-              1
-            </span>
-          </button>
-
-          {/* Notification dropdown */}
-          <AnimatePresence>
-            {showNotif && (
-              <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute right-0 z-50"
-                style={{ top: "calc(100% + 8px)", width: "300px" }}
-              >
-                <div
-                  className="rounded-[18px] overflow-hidden"
-                  style={{
-                    background: "rgba(255,255,255,0.97)",
-                    backdropFilter: "blur(24px)",
-                    WebkitBackdropFilter: "blur(24px)",
-                    boxShadow: "0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-                    border: "1px solid rgba(0,0,0,0.06)",
-                  }}
-                >
-                  <div
-                    className="flex items-center justify-between px-4 py-3"
-                    style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}
-                  >
-                    <p className="text-[13px] font-manrope font-bold text-[var(--color-on-surface)]">
-                      Notificaciones
-                    </p>
-                    <span
-                      className="text-[10px] font-inter font-semibold px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "var(--color-tertiary-fixed)",
-                        color: "var(--color-tertiary)",
-                      }}
-                    >
-                      1 nueva
-                    </span>
-                  </div>
-
-                  <div className="px-4 py-3 flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-[12px] bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Icon name={MOCK_NOTIFICATION.icon} size={18} className="text-emerald-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-manrope font-semibold text-[var(--color-on-surface)] leading-tight">
-                        {MOCK_NOTIFICATION.title}
-                      </p>
-                      <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/65 mt-0.5 leading-snug">
-                        {MOCK_NOTIFICATION.body}
-                      </p>
-                      <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/40 mt-1.5">
-                        {MOCK_NOTIFICATION.time}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Bell notification — TODO: wire up when notifications API is ready */}
 
         {/* QR */}
         <div

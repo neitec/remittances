@@ -651,34 +651,38 @@ export default function SendPage() {
                     </div>
 
                     <div className="flex items-start gap-3">
-                      {[
-                        { name: "Mateo", color: "#003ec7" },
-                        { name: "Lucía", color: "#bc4800" },
-                        { name: "Carlos", color: "#0d9488" },
-                      ].map((contact) => (
-                        <button
-                          key={contact.name}
-                          onClick={() => toast.info(`Seleccionando a ${contact.name}`)}
-                          className="flex flex-col items-center gap-1.5 group transition-all flex-1"
-                        >
-                          <div
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-manrope font-bold text-[16px] transition-transform group-hover:scale-105 ring-2 ring-transparent group-hover:ring-[var(--color-primary)]/20"
-                            style={{ background: contact.color }}
-                          >
-                            {contact.name[0]}
-                          </div>
-                          <p className="font-inter text-[11px] font-medium text-[var(--color-on-surface)] leading-tight">{contact.name}</p>
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => toast.info("Añadir nuevo contacto próximamente")}
-                        className="flex flex-col items-center gap-1.5 group transition-all flex-1"
-                      >
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--color-surface-container-low)] transition-transform group-hover:scale-105 border border-dashed border-[rgba(0,0,0,0.15)]">
-                          <Icon name="add" size={18} className="text-[var(--color-on-surface-variant)]/45" />
-                        </div>
-                        <p className="font-inter text-[11px] font-medium text-[var(--color-on-surface-variant)]/45 leading-tight">Nuevo</p>
-                      </button>
+                      {transactionsData?.pages[0]?.transactions?.slice(0, 3)?.length ? (
+                        transactionsData.pages[0].transactions.slice(0, 3).map((txn) => {
+                          const colors = ["#003ec7", "#bc4800", "#0d9488"];
+                          const colorIdx = Math.abs(txn.id.charCodeAt(0) % 3);
+                          const initial = txn.amount[0];
+                          return (
+                            <button
+                              key={txn.id}
+                              onClick={() => {
+                                if (txn.type === "TRANSFER") {
+                                  toast.info("Seleccionando contacto...");
+                                }
+                              }}
+                              className="flex flex-col items-center gap-1.5 group transition-all flex-1"
+                            >
+                              <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-manrope font-bold text-[14px] transition-transform group-hover:scale-105 ring-2 ring-transparent group-hover:ring-[var(--color-primary)]/20"
+                                style={{ background: colors[colorIdx] }}
+                              >
+                                {initial}
+                              </div>
+                              <p className="font-inter text-[11px] font-medium text-[var(--color-on-surface)] leading-tight truncate w-full text-center">
+                                +{txn.amount}
+                              </p>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="text-center w-full text-xs text-[var(--color-on-surface-variant)]/50 py-4">
+                          Aún no has enviado dinero
+                        </p>
+                      )}
                     </div>
                   </div>
 

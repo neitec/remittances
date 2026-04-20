@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTransactions } from "@/lib/hooks/useTransactions";
 import { TransactionType } from "@/lib/api";
@@ -25,6 +25,7 @@ export default function TransactionsPage() {
   const searchParams = useSearchParams();
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [selectedTxn, setSelectedTxn] = useState<string | null>(searchParams.get("detail"));
+  const openedWithDetail = useRef(!!searchParams.get("detail"));
   const apiFilter = filterType === "all" || filterType === "withdrawal" ? "all" : filterType;
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useTransactions({
     type: apiFilter,
@@ -141,7 +142,7 @@ export default function TransactionsPage() {
                 </div>
               ) : transactions.length > 0 ? (
                 <>
-                  <StaggerChildren>
+                  <StaggerChildren skipAnimation={openedWithDetail.current}>
                     {transactions.map((txn) => (
                       <MotionItem key={txn.id}>
                         <motion.button
@@ -323,8 +324,15 @@ export default function TransactionsPage() {
                           {detailTxn.type === "TRANSFER" ? "Enviado a" : "Origen de"}
                         </p>
                         <p className="font-manrope font-bold text-[var(--color-on-surface)] truncate">
-                          {detailTxn.type === "TRANSFER" ? "Beneficiario" : "Transferencia bancaria SEPA entrante"}
+                          {detailTxn.type === "TRANSFER"
+                            ? "Transferencia enviada"
+                            : (detailTxn.externalAccount?.bankName ?? "Depósito SEPA")}
                         </p>
+                        {detailTxn.type === "DEPOSIT" && detailTxn.externalAccount?.accountNumber && (
+                          <p className="text-xs text-[var(--color-on-surface-variant)] mt-0.5 truncate">
+                            {detailTxn.externalAccount.accountNumber}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

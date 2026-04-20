@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { isValidIBAN, friendlyFormatIBAN } from "ibantools";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/Icon";
 import { SlideToAction } from "@/components/ui/SlideToAction";
@@ -23,18 +24,12 @@ const COUNTRIES = {
   DO: { name: "República Dominicana", code: "+1", iban: "DO" },
 };
 
-function validateIBAN(raw: string): string | null {
+function validateIBAN(raw: string): { error: string | null; formatted: string } {
   const cleaned = raw.replace(/\s/g, "").toUpperCase();
-
-  if (cleaned.length < 15) {
-    return "El IBAN debe tener al menos 15 caracteres";
+  if (!isValidIBAN(cleaned)) {
+    return { error: "IBAN no válido", formatted: cleaned };
   }
-
-  if (!cleaned.match(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/)) {
-    return "Formato de IBAN no válido";
-  }
-
-  return null;
+  return { error: null, formatted: friendlyFormatIBAN(cleaned) };
 }
 
 export function BankAccountForm({
@@ -54,12 +49,14 @@ export function BankAccountForm({
 
   const handleAccountNumberChange = (value: string) => {
     const cleaned = value.toUpperCase();
-    setAccountNumber(cleaned);
-    if (cleaned) {
-      setAccountNumberError(validateIBAN(cleaned));
-    } else {
+    if (!cleaned) {
+      setAccountNumber("");
       setAccountNumberError(null);
+      return;
     }
+    const { error, formatted } = validateIBAN(cleaned);
+    setAccountNumber(formatted);
+    setAccountNumberError(error);
   };
 
   const handleSubmit = async () => {
@@ -68,7 +65,7 @@ export function BankAccountForm({
       return;
     }
 
-    const error = validateIBAN(accountNumber);
+    const { error } = validateIBAN(accountNumber);
     if (error) {
       setAccountNumberError(error);
       return;
@@ -141,7 +138,7 @@ export function BankAccountForm({
           </h1>
 
           <form className="space-y-6">
-            {/* EXT2: Country selector */}
+            {/* EXT2: Country selector — Spain only */}
             <div className="space-y-3">
               <label className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                 País del banco
@@ -149,12 +146,20 @@ export function BankAccountForm({
               <div className="relative">
                 <select
                   value={country}
-                  onChange={(e) => setCountry(e.target.value as keyof typeof COUNTRIES)}
+                  onChange={(e) => {
+                    const selected = e.target.value as keyof typeof COUNTRIES;
+                    if (selected !== "ES") {
+                      setCountry("ES");
+                      toast.info("Solo disponible para cuentas españolas por ahora");
+                    } else {
+                      setCountry(selected);
+                    }
+                  }}
                   className="w-full appearance-none px-4 py-3 pr-10 rounded-2xl bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] font-inter border border-[var(--color-outline-variant)] focus:border-[var(--color-primary)] focus:outline-none transition-colors"
                 >
                   {Object.entries(COUNTRIES).map(([code, data]) => (
-                    <option key={code} value={code}>
-                      {code} - {data.name}
+                    <option key={code} value={code} disabled={code !== "ES"}>
+                      {code} - {data.name} {code !== "ES" ? "(Próximamente)" : ""}
                     </option>
                   ))}
                 </select>
@@ -166,29 +171,44 @@ export function BankAccountForm({
               </div>
             </div>
 
-            {/* EXT3: IBAN with country flag */}
+            {/* EXT3: IBAN input */}
             <div className="space-y-3">
               <label className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                 IBAN
               </label>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] focus-within:border-[var(--color-primary)]">
-                <span className="px-2 py-1 rounded-lg bg-[var(--color-primary-fixed)] text-[var(--color-primary)] font-inter font-bold text-sm">{country}</span>
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${
+                accountNumberError
+                  ? "border-[var(--color-error)] bg-[rgba(244,63,94,0.03)]"
+                  : accountNumber && !accountNumberError
+                  ? "border-[var(--color-success)] bg-[rgba(16,185,129,0.03)]"
+                  : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)]"
+              } focus-within:border-[var(--color-primary)]`}>
                 <input
                   type="text"
-                  placeholder="91 2100 0418 4502 0005 1332"
+                  placeholder="Ej: ES91 2100 0418 4502 0005 1332"
                   value={accountNumber}
                   onChange={(e) => handleAccountNumberChange(e.target.value)}
                   disabled={isPending}
                   className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter outline-none placeholder:text-[var(--color-on-surface-variant)]/50"
                 />
+                {!accountNumberError && accountNumber && (
+                  <Icon name="check_circle" size={20} className="text-[var(--color-success)] flex-shrink-0" />
+                )}
               </div>
               {accountNumberError && (
-                <p className="text-xs text-[var(--color-error)] font-inter mt-1">
+                <p className="text-xs text-[var(--color-error)] font-inter flex items-center gap-1.5 mt-1">
+                  <Icon name="error_outline" size={14} />
                   {accountNumberError}
                 </p>
               )}
+              {!accountNumberError && accountNumber && (
+                <p className="text-xs text-[var(--color-success)] font-inter flex items-center gap-1.5 mt-1">
+                  <Icon name="check" size={14} />
+                  IBAN válido
+                </p>
+              )}
               <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">
-                Cuenta bancaria {country === "ES" ? "SEPA (Europa)" : "Internacional"}
+                Cuenta bancaria SEPA (Europa)
               </p>
             </div>
 
@@ -249,7 +269,7 @@ export function BankAccountForm({
             className="space-y-7 p-10 rounded-2xl bg-[var(--color-surface-container-low)]/50 border border-[var(--color-outline-variant)]/20"
           >
             <form className="space-y-7">
-              {/* Country selector */}
+              {/* Country selector — Spain only */}
               <div className="space-y-2.5">
                 <label className="font-inter font-bold text-[10px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                   País del banco
@@ -257,12 +277,20 @@ export function BankAccountForm({
                 <div className="relative">
                   <select
                     value={country}
-                    onChange={(e) => setCountry(e.target.value as keyof typeof COUNTRIES)}
+                    onChange={(e) => {
+                      const selected = e.target.value as keyof typeof COUNTRIES;
+                      if (selected !== "ES") {
+                        setCountry("ES");
+                        toast.info("Solo disponible para cuentas españolas por ahora");
+                      } else {
+                        setCountry(selected);
+                      }
+                    }}
                     className="w-full appearance-none px-4 py-3 pr-10 rounded-xl bg-[var(--color-surface-container)] text-[var(--color-on-surface)] font-inter text-sm border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors"
                   >
                     {Object.entries(COUNTRIES).map(([code, data]) => (
-                      <option key={code} value={code}>
-                        {code} - {data.name}
+                      <option key={code} value={code} disabled={code !== "ES"}>
+                        {code} - {data.name} {code !== "ES" ? "(Próximamente)" : ""}
                       </option>
                     ))}
                   </select>
@@ -274,25 +302,40 @@ export function BankAccountForm({
                 </div>
               </div>
 
-              {/* IBAN with flag */}
+              {/* IBAN input */}
               <div className="space-y-2.5">
                 <label className="font-inter font-bold text-[10px] uppercase tracking-widest text-[var(--color-on-surface-variant)]">
                   IBAN
                 </label>
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)]/50 focus-within:border-[var(--color-primary)] transition-colors">
-                  <span className="px-2 py-0.5 rounded-lg bg-[var(--color-primary-fixed)] text-[var(--color-primary)] font-inter font-bold text-xs">{country}</span>
+                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                  accountNumberError
+                    ? "border-[var(--color-error)] bg-[rgba(244,63,94,0.03)]"
+                    : accountNumber && !accountNumberError
+                    ? "border-[var(--color-success)] bg-[rgba(16,185,129,0.03)]"
+                    : "border-[var(--color-outline-variant)]/50 bg-[var(--color-surface-container)]"
+                } focus-within:border-[var(--color-primary)]`}>
                   <input
                     type="text"
-                    placeholder="91 2100 0418 4502 0005 1332"
+                    placeholder="Ej: ES91 2100 0418 4502 0005 1332"
                     value={accountNumber}
                     onChange={(e) => handleAccountNumberChange(e.target.value)}
                     disabled={isPending}
                     className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter text-sm outline-none placeholder:text-[var(--color-on-surface-variant)]/50"
                   />
+                  {!accountNumberError && accountNumber && (
+                    <Icon name="check_circle" size={18} className="text-[var(--color-success)] flex-shrink-0" />
+                  )}
                 </div>
                 {accountNumberError && (
-                  <p className="text-xs text-[var(--color-error)] font-inter">
+                  <p className="text-xs text-[var(--color-error)] font-inter flex items-center gap-1 mt-1">
+                    <Icon name="error_outline" size={13} />
                     {accountNumberError}
+                  </p>
+                )}
+                {!accountNumberError && accountNumber && (
+                  <p className="text-xs text-[var(--color-success)] font-inter flex items-center gap-1 mt-1">
+                    <Icon name="check" size={13} />
+                    IBAN válido
                   </p>
                 )}
               </div>

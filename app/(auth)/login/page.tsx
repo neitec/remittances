@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -117,11 +118,12 @@ export default function LoginPage() {
               className="inline-block lg:inline-block mb-6"
             >
               <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg border border-white/30">
-                <Icon
-                  name="globe"
-                  size={32}
-                  className="text-white"
-                  filled
+                <Image
+                  src="/remita-isologo.png"
+                  alt="Remita"
+                  width={40}
+                  height={40}
+                  className="object-contain"
                 />
               </div>
             </motion.div>
