@@ -152,8 +152,9 @@ export default function LoginPage() {
               variants={item}
               className="text-white/60 text-base lg:text-lg font-inter mb-10 leading-relaxed"
             >
-              Envía dinero a República Dominicana de forma rápida, segura y sin comisiones ocultas. Conecta con los tuyos, sin fronteras.
+              Envía dinero cross-border de manera global: rápido, seguro y sin comisiones ocultas. Llega a cualquier destino, sin fronteras.
             </motion.p>
+       
 
             {/* Benefit cards */}
             <motion.div

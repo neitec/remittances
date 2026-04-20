@@ -9,10 +9,17 @@ export function useSendMoney() {
   const queryClient = useQueryClient();
 
   return useMutation<TransferResult, Error, TransferRequest>({
-    mutationFn: async (data) => transfersEndpoint.send(data),
-    onSuccess: () => {
+    mutationFn: async (data) => {
+      console.log('[useSendMoney] Mutation triggered with:', data);
+      return transfersEndpoint.send(data);
+    },
+    onSuccess: (data) => {
+      console.log('[useSendMoney] Mutation success:', data);
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions() });
+    },
+    onError: (error) => {
+      console.error('[useSendMoney] Mutation error:', error);
     },
   });
 }

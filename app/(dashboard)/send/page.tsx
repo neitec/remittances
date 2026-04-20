@@ -90,18 +90,43 @@ export default function SendPage() {
     setErrorMessage("");
     setStep("processing");
 
-    // For bank mode, use the real API
-    if (sendMode === "bank" && selectedAccountData) {
+    console.log("[Transfer] handleSendConfirm called", { sendMode, selectedAccountData, amount, phone, alias });
+
+    // For user-to-user transfer
+    if (sendMode === "user" && beneficiary) {
+      console.log("[Transfer] Mode: user-to-user");
       const amountNum = parseFloat(amount.replace(",", "."));
+      const fullPhone = phone ? countryCode + phone : null;
+
+      if (!fullPhone) {
+        setErrorMessage("Número de teléfono inválido");
+        setStep("error");
+        setSubmitted(false);
+        return;
+      }
+
+      if (isNaN(amountNum) || amountNum <= 0) {
+        setErrorMessage("Monto inválido");
+        setStep("error");
+        setSubmitted(false);
+        return;
+      }
+
       sendMoney(
         {
-          beneficiaryPhone: "",
+          beneficiaryPhone: fullPhone,
           amount: amountNum.toString(),
-          reference: message ? `mensaje: ${message}` : undefined,
+          userAlias: alias || undefined,
+          reference: message || undefined,
         },
         {
-          onSuccess: () => { setStep("success"); setSubmitted(false); },
+          onSuccess: () => {
+            console.log("[Transfer] Success");
+            setStep("success");
+            setSubmitted(false);
+          },
           onError: (err) => {
+            console.error("[Transfer] Error:", err);
             setErrorMessage(err instanceof Error ? err.message : "Error al enviar el dinero");
             setStep("error");
             setSubmitted(false);
@@ -109,7 +134,44 @@ export default function SendPage() {
         }
       );
     }
-    // For user mode, the TransferProcessingScreen handles its own flow
+    // For bank transfer
+    else if (sendMode === "bank" && selectedAccountData) {
+      console.log("[Transfer] Mode: bank transfer");
+      const amountNum = parseFloat(amount.replace(",", "."));
+
+      if (isNaN(amountNum) || amountNum <= 0) {
+        setErrorMessage("Monto inválido");
+        setStep("error");
+        setSubmitted(false);
+        return;
+      }
+
+      sendMoney(
+        {
+          beneficiaryPhone: selectedAccountData.accountNumber,
+          amount: amountNum.toString(),
+          reference: message ? `mensaje: ${message}` : undefined,
+        },
+        {
+          onSuccess: () => {
+            console.log("[Transfer] Success");
+            setStep("success");
+            setSubmitted(false);
+          },
+          onError: (err) => {
+            console.error("[Transfer] Error:", err);
+            setErrorMessage(err instanceof Error ? err.message : "Error al enviar el dinero");
+            setStep("error");
+            setSubmitted(false);
+          },
+        }
+      );
+    } else {
+      console.error("[Transfer] Invalid state", { sendMode, beneficiary, selectedAccountData });
+      setErrorMessage("Estado inválido para la transferencia");
+      setStep("error");
+      setSubmitted(false);
+    }
   };
 
   useEffect(() => {
@@ -664,7 +726,7 @@ export default function SendPage() {
                   </AnimatePresence>
 
                   {/* ── Slide CTA ── */}
-                  <div className="mt-8">
+                  <div className="mt-8 space-y-3">
                   <SlideToAction
                     onConfirm={handleSendConfirm}
                     label="DESLIZA PARA TRANSFERIR"
@@ -675,6 +737,18 @@ export default function SendPage() {
                     }
                     loading={isSending}
                   />
+                  <button
+                    onClick={handleSendConfirm}
+                    disabled={
+                      !phone || phone.length < 9 || !beneficiary ||
+                      !amount || parseFloat(amount.replace(",", ".")) <= 0 ||
+                      parseFloat(amount.replace(",", ".")) > totalBalance ||
+                      isSending
+                    }
+                    className="w-full px-6 py-3 rounded-xl bg-[var(--color-success-bg)] text-[var(--color-success-text)] font-manrope font-bold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
+                  >
+                    {isSending ? "Procesando..." : "Enviar (Prueba)"}
+                  </button>
                   </div>
                 </div>
 
@@ -683,10 +757,20 @@ export default function SendPage() {
 
                   {/* Frecuentes card */}
                   <div
-                    className="rounded-[22px] p-5 space-y-4"
+                    className="rounded-[22px] p-5 space-y-4 relative"
                     style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
                   >
-                    <div className="flex items-center justify-between">
+                    {/* Blur overlay + Próximamente badge */}
+                    <div className="absolute inset-0 rounded-[22px] backdrop-blur-[3px] flex items-center justify-center pointer-events-none">
+                      <span
+                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-inter font-bold uppercase tracking-[0.1em]"
+                        style={{ background: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" }}
+                      >
+                        Próximamente
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between opacity-50 pointer-events-none">
                       <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]/50">Frecuentes y favoritos</p>
                       <button
                         onClick={() => toast.info("Ver todos los contactos próximamente")}

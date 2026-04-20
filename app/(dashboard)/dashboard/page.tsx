@@ -41,8 +41,11 @@ export default function DashboardPage() {
   }
 
   const totalBalance = dashboardData?.totalBalance ?? 0;
-  const transactions = transactionsData?.pages?.[0]?.transactions ?? [];
-  const lastTransactions = transactions.slice(0, 5);
+  const allTransactions = transactionsData?.pages?.flatMap((p) => p.transactions) ?? [];
+  // Sort by most recent first and get last 5
+  const lastTransactions = allTransactions
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">

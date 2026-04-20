@@ -25,6 +25,7 @@ export default function TransactionsPage() {
   const searchParams = useSearchParams();
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [selectedTxn, setSelectedTxn] = useState<string | null>(searchParams.get("detail"));
+  const [currentPage, setCurrentPage] = useState(0);
   const openedWithDetail = useRef(!!searchParams.get("detail"));
   const apiFilter = filterType === "all" || filterType === "withdrawal" ? "all" : filterType;
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useTransactions({
@@ -37,7 +38,20 @@ export default function TransactionsPage() {
     ? allTransactions
     : allTransactions.filter(t => t.type === filterType);
 
+  // Pagination: 10 items per page
+  const ITEMS_PER_PAGE = 10;
+  const startIdx = currentPage * ITEMS_PER_PAGE;
+  const paginatedTransactions = transactions.slice(0, startIdx + ITEMS_PER_PAGE);
+  const hasMoreItems = transactions.length > startIdx + ITEMS_PER_PAGE;
+  const shouldShowLoadMore = hasMoreItems || hasNextPage;
+
   const detailTxn = selectedTxn ? allTransactions.find(t => t.id === selectedTxn) : null;
+
+  // Reset pagination when changing filter
+  const handleFilterChange = (newFilter: FilterType) => {
+    setFilterType(newFilter);
+    setCurrentPage(0);
+  };
 
   if (isLoading) {
     return (
@@ -73,7 +87,7 @@ export default function TransactionsPage() {
             return (
               <button
                 key={tab.value}
-                onClick={() => !tab.disabled && setFilterType(tab.value)}
+                onClick={() => !tab.disabled && handleFilterChange(tab.value)}
                 disabled={tab.disabled}
                 className={cn(
                   "relative flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-inter font-medium transition-all duration-150 select-none",
@@ -143,7 +157,7 @@ export default function TransactionsPage() {
               ) : transactions.length > 0 ? (
                 <>
                   <StaggerChildren skipAnimation={openedWithDetail.current}>
-                    {transactions.map((txn) => (
+                    {paginatedTransactions.map((txn) => (
                       <MotionItem key={txn.id}>
                         <motion.button
                           onClick={() => setSelectedTxn(txn.id)}
@@ -200,9 +214,15 @@ export default function TransactionsPage() {
                     ))}
                   </StaggerChildren>
 
-                  {hasNextPage && (
+                  {shouldShowLoadMore && (
                     <motion.button
-                      onClick={() => fetchNextPage()}
+                      onClick={() => {
+                        if (hasMoreItems) {
+                          setCurrentPage(currentPage + 1);
+                        } else if (hasNextPage) {
+                          fetchNextPage();
+                        }
+                      }}
                       disabled={isFetchingNextPage}
                       className="w-full mt-6 p-3 border border-[var(--color-outline-variant)]/20 rounded-xl text-[var(--color-on-surface)] font-manrope font-bold hover:bg-[var(--color-surface-container-low)] transition-colors disabled:opacity-50 text-sm flex items-center justify-center gap-2"
                       initial={{ opacity: 0 }}

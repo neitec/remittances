@@ -55,7 +55,8 @@ export function SlideToAction({
 
   const handleDragEnd = (info: any) => {
     const threshold = maxDrag * 0.8;
-    if (info.offset.x >= threshold && !disabled && !loading) {
+    const offsetX = info?.offset?.x ?? 0;
+    if (offsetX >= threshold && !disabled && !loading) {
       // Snap thumb to end, show burst, then fire onConfirm
       animate(thumbX, maxDrag, { type: "spring", stiffness: 400, damping: 35 });
       setConfirmed(true);
@@ -66,7 +67,8 @@ export function SlideToAction({
           animate(thumbX, 0, { type: "spring", stiffness: 280, damping: 28 });
         }, 700);
       }, 380);
-    } else {
+    } else if (!loading) {
+      // Only reset if not loading - prevents flickering during processing
       animate(thumbX, 0, { type: "spring", stiffness: 300, damping: 30 });
     }
   };
@@ -96,8 +98,8 @@ export function SlideToAction({
       <div
         ref={containerRef}
         className={cn(
-          "relative h-[64px] rounded-full overflow-hidden select-none",
-          disabled && "opacity-45 pointer-events-none"
+          "relative h-[64px] rounded-full overflow-hidden select-none transition-opacity",
+          (disabled || loading) && "opacity-45 pointer-events-none"
         )}
         style={{
           background: "rgba(0,62,199,0.12)",

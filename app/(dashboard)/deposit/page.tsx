@@ -286,61 +286,38 @@ export default function DepositPage() {
                 </div>
               </motion.button>
 
-              {/* Coming soon section — Multiple currencies with FOMO */}
+              {/* Coming soon section — Multiple currencies */}
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h2 className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)]">
-                    Próximamente — Más divisas
+                    Próximamente — Soporte a más divisas
                   </h2>
                   <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70">
-                    Lanzamos soporte para 4 divisas en 2026 — actívate antes que nadie
+                    Expandimos el soporte a múltiples divisas en 2026
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex gap-2 overflow-x-auto pb-2">
                   {[
-                    { code: "USD", name: "Dólares", icon: "dollar", color: "#003ec7" },
-                    { code: "DOP", name: "Pesos RD", icon: "currency_pound", color: "#bc4800" },
-                    { code: "COP", name: "Pesos CO", icon: "currency_exchange", color: "#0d9488" },
-                    { code: "MXN", name: "Pesos MX", icon: "paid", color: "#7c3aed" },
+                    { code: "USD", name: "Dólares", color: "#003ec7" },
+                    { code: "DOP", name: "Pesos RD", color: "#bc4800" },
+                    { code: "COP", name: "Pesos CO", color: "#0d9488" },
+                    { code: "MXN", name: "Pesos MX", color: "#7c3aed" },
                   ].map((currency) => (
                     <motion.button
                       key={currency.code}
                       onClick={() => toast.info(`Depósitos en ${currency.name} estarán disponibles muy pronto`)}
-                      whileHover={{ y: -2, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
+                      whileHover={{ y: -2 }}
                       whileTap={{ scale: 0.97 }}
                       transition={{ duration: 0.2 }}
-                      className="relative overflow-hidden rounded-[18px] p-4 text-center border-2 border-dashed cursor-not-allowed transition-all group"
+                      className="flex-shrink-0 flex flex-col items-center gap-2 px-4 py-3 rounded-[14px] border border-dashed transition-all cursor-not-allowed group"
                       style={{
-                        borderColor: `${currency.color}33`,
-                        background: `linear-gradient(135deg, ${currency.color}04 0%, ${currency.color}02 100%)`,
+                        borderColor: `${currency.color}40`,
+                        background: `${currency.color}08`,
                       }}
                     >
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                        style={{
-                          background: `linear-gradient(135deg, ${currency.color}08 0%, ${currency.color}04 100%)`,
-                        }}
-                      />
-                      <div className="relative z-10">
-                        <div className="flex justify-center mb-2">
-                          <div
-                            className="w-10 h-10 rounded-[10px] flex items-center justify-center"
-                            style={{ background: `${currency.color}15`, color: currency.color }}
-                          >
-                            <Icon name={currency.icon} size={18} />
-                          </div>
-                        </div>
-                        <p className="font-manrope font-bold text-sm text-[var(--color-on-surface)]">{currency.code}</p>
-                        <p className="text-xs text-[var(--color-on-surface-variant)]/60 mt-0.5">{currency.name}</p>
-                        <motion.span
-                          animate={{ opacity: [0.7, 1, 0.7] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                          className="inline-block text-[9px] font-inter font-bold uppercase tracking-[0.08em] px-2 py-1 rounded-full mt-2"
-                          style={{ background: `${currency.color}20`, color: currency.color }}
-                        >
-                          Muy pronto
-                        </motion.span>
-                      </div>
+                      <p className="font-manrope font-semibold text-[13px] text-[var(--color-on-surface)]">{currency.code}</p>
+                      <p className="text-[11px] text-[var(--color-on-surface-variant)]/60">{currency.name}</p>
                     </motion.button>
                   ))}
                 </div>
@@ -580,7 +557,6 @@ export default function DepositPage() {
                     { label: "Nombre del banco", value: depositInstruction.bank_name, icon: "account_balance" },
                     { label: "Dirección", value: depositInstruction.bank_address, icon: "location_on" },
                     { label: "IBAN", value: depositInstruction.iban, icon: "credit_card", mono: true },
-                    { label: "BIC / SWIFT", value: depositInstruction.bic, icon: "swap_horiz", mono: true },
                     { label: "Beneficiario", value: depositInstruction.account_holder_name, icon: "person" },
                   ].map((field, idx, arr) => (
                     <button
