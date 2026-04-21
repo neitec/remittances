@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { logger } from '@/lib/utils/logger';
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL || ''}/api`;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
