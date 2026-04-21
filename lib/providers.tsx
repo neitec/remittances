@@ -8,6 +8,13 @@ import { Toaster } from "@/components/ui/sonner";
 import { queryClient } from "@/lib/query-client";
 import { apiClient } from "@/lib/api";
 
+function getRedirectUri(): string {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_AUTH0_REDIRECT_URI || '';
+  }
+  return `${window.location.origin}/api/auth/callback`;
+}
+
 function Auth0Wrapper({ children }: { children: ReactNode }) {
   const auth0ClientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
 
@@ -20,7 +27,7 @@ function Auth0Wrapper({ children }: { children: ReactNode }) {
       domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN || ''}
       clientId={auth0ClientId}
       authorizationParams={{
-        redirect_uri: process.env.NEXT_PUBLIC_AUTH0_REDIRECT_URI,
+        redirect_uri: getRedirectUri(),
         audience: process.env.NEXT_PUBLIC_AUTH0_AUDIENCE,
         scope: 'openid profile email',
       }}

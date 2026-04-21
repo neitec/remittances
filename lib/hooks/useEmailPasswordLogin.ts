@@ -68,12 +68,6 @@ export function usePasswordlessOTP() {
         throw new Error(data.error_description || 'Código inválido');
       }
 
-      localStorage.setItem('auth0.is.authenticated', 'true');
-      localStorage.setItem('auth0.access_token', data.access_token);
-      if (data.id_token) {
-        localStorage.setItem('auth0.id_token', data.id_token);
-      }
-
       window.location.href = '/dashboard';
     } catch (error) {
       console.error('verifyOTP error:', error);
