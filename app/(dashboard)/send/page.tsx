@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@/components/ui/Icon";
 import { SlideToAction } from "@/components/ui/SlideToAction";
@@ -13,10 +13,9 @@ import { ExternalAccountSelector } from "@/components/features/ExternalAccountSe
 import { toast } from "sonner";
 import { useAccounts } from "@/lib/hooks/queries/useAccounts";
 import { useTransactions } from "@/lib/hooks/queries/useTransactions";
-import { formatCurrency, maskIBAN, formatRelativeDate } from "@/lib/format";
+import { formatCurrency, maskIBAN } from "@/lib/format";
 import { ExternalAccount } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { TransferProcessingScreen } from "@/components/features/TransferProcessingScreen";
 import { SendSkeleton } from "@/components/motion/ShimmerSkeleton";
@@ -52,8 +51,6 @@ export default function SendPage() {
 
   const totalBalance = dashboardData?.totalBalance ?? 0;
   const hasBalance = totalBalance > 0;
-  const step3Unlocked =
-    sendMode === "user" ? !!beneficiary : !!selectedAccountData;
   const senderName = [me?.name, me?.surname].filter(Boolean).join(" ") || "Usuario";
 
   const QUICK_AMOUNTS = [50, 100, 200, 500];
@@ -62,7 +59,6 @@ export default function SendPage() {
   const handlePhoneChange = (value: string) => {
     if (alias) return;
     const digitsOnly = value.replace(/\D/g, "").slice(0, 9);
-    const formatted = digitsOnly.replace(/(\d{2})(?=\d)/g, "$1 ");
     setPhone(digitsOnly);
     setActiveField(digitsOnly ? "phone" : null);
     setBeneficiaryError("");
@@ -80,25 +76,14 @@ export default function SendPage() {
     }
   };
 
-  // Handle alias change
-  const handleAliasChange = (value: string) => {
-    if (phone) return; // Phone has content, don't allow alias input
-    setAlias(value);
-    setActiveField(value ? "alias" : null);
-    setBeneficiaryError("");
-  };
-
   const handleSendConfirm = () => {
     if (submitted) return;
     setSubmitted(true);
     setErrorMessage("");
     setStep("processing");
 
-    console.log("[Transfer] handleSendConfirm called", { sendMode, selectedAccountData, amount, phone, alias });
-
     // For user-to-user transfer
     if (sendMode === "user" && beneficiary) {
-      console.log("[Transfer] Mode: user-to-user");
       const amountNum = parseFloat(amount.replace(",", "."));
       const fullPhone = phone ? countryCode + phone : null;
 
@@ -125,11 +110,9 @@ export default function SendPage() {
         },
         {
           onSuccess: () => {
-            console.log("[Transfer] Success");
             setSubmitted(false);
           },
           onError: (err) => {
-            console.error("[Transfer] Error:", err);
             setErrorMessage(err instanceof Error ? err.message : "Error al enviar el dinero");
             setStep("error");
             setSubmitted(false);
@@ -139,7 +122,6 @@ export default function SendPage() {
     }
     // For bank transfer
     else if (sendMode === "bank" && selectedAccountData) {
-      console.log("[Transfer] Mode: bank transfer");
       const amountNum = parseFloat(amount.replace(",", "."));
 
       if (isNaN(amountNum) || amountNum <= 0) {
@@ -157,11 +139,9 @@ export default function SendPage() {
         },
         {
           onSuccess: () => {
-            console.log("[Transfer] Success");
             setSubmitted(false);
           },
           onError: (err) => {
-            console.error("[Transfer] Error:", err);
             setErrorMessage(err instanceof Error ? err.message : "Error al enviar el dinero");
             setStep("error");
             setSubmitted(false);
@@ -169,7 +149,6 @@ export default function SendPage() {
         }
       );
     } else {
-      console.error("[Transfer] Invalid state", { sendMode, beneficiary, selectedAccountData });
       setErrorMessage("Estado inválido para la transferencia");
       setStep("error");
       setSubmitted(false);
@@ -272,11 +251,12 @@ export default function SendPage() {
                   Añade fondos para poder enviar dinero
                 </p>
               </div>
-              <Link href="/deposit" className="block">
-                <button className="w-full px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-manrope font-bold transition-all hover:opacity-90 active:scale-[0.98]">
-                  Depositar fondos
-                </button>
-              </Link>
+              <button
+                onClick={() => router.push("/deposit")}
+                className="w-full px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-manrope font-bold transition-all hover:opacity-90 active:scale-[0.98]"
+              >
+                Depositar fondos
+              </button>
               <button
                 onClick={() => router.push("/dashboard")}
                 className="w-full px-6 py-3 rounded-xl border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] font-manrope font-bold transition-all hover:bg-[var(--color-surface-container-low)]"

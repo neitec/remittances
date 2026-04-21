@@ -9,29 +9,9 @@ import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
 
-type DepositMethod = "EUR" | "DOP";
 type Step = 1 | 2 | 3 | 4;
 
 const DEPOSIT_AMOUNT_ENABLED = process.env.NEXT_PUBLIC_DEPOSIT_AMOUNT_ENABLED === "true";
-
-const DEPOSIT_METHODS = [
-  {
-    id: "EUR" as DepositMethod,
-    label: "Depósito en Euros (EUR)",
-    description: "Transferencia bancaria directa vía red SEPA. Los fondos suelen acreditarse en 24h hábiles.",
-    icon: "euro_symbol",
-    disabled: false,
-    badge: "HABILITADO",
-  },
-  {
-    id: "DOP" as DepositMethod,
-    label: "Próximamente",
-    description: "Depósitos en pesos dominicanos",
-    icon: "payments",
-    disabled: true,
-    badge: "PRÓXIMAMENTE",
-  },
-];
 
 const slideVariants = {
   initial: (dir: number) => ({ x: dir * 50, opacity: 0, scale: 0.985 }),
@@ -42,10 +22,9 @@ const slideVariants = {
 export default function DepositPage() {
   const [step, setStep] = useState<Step>(1);
   const [direction, setDirection] = useState(1);
-  const [selectedMethod, setSelectedMethod] = useState<DepositMethod>("EUR");
   const [selectedAccount, setSelectedAccount] = useState<string>("");
   const [selectedAmount, setSelectedAmount] = useState<string>("");
-  const { mutate: initiateDeposit, isPending, data: depositInstruction } = useDeposit();
+  const { mutate: initiateDeposit, data: depositInstruction } = useDeposit();
 
   const goToStep = (newStep: Step, dir: number = 1) => {
     setDirection(dir);
@@ -192,7 +171,6 @@ export default function DepositPage() {
               {/* EUR — primary active card */}
               <motion.button
                 onClick={() => {
-                  setSelectedMethod("EUR");
                   setSelectedAccount("");
                   goToStep(2);
                 }}
