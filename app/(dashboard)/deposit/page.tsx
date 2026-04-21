@@ -1,17 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useDeposit } from "@/lib/hooks/mutations/useDeposit";
+import { useDeposit } from "@/lib/hooks/useDeposit";
 import { ExternalAccountSelector } from "@/components/features/ExternalAccountSelector";
-import { DepositAmountSelector } from "@/components/features/DepositAmountSelector";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
+import { QRCodeCanvas } from "qrcode.react";
 
 type Step = 1 | 2 | 3 | 4;
 
-const DEPOSIT_AMOUNT_ENABLED = process.env.NEXT_PUBLIC_DEPOSIT_AMOUNT_ENABLED === "true";
+const NETWORKS = [
+  { id: "eth",  label: "Ethereum", badge: "ERC-20", color: "#627eea", address: "0x3Fa4B0Yb7cD1eA2F9d8C5E6a1b4D7f3C2e0A8b9" },
+  { id: "base", label: "Base",     badge: "Base",    color: "#0052ff", address: "0x9Ac2E5Fb1dB3C7A0e4D6f8b2C5a1E9d7F3b0C4e" },
+  { id: "tron", label: "Tron",     badge: "TRC-20",  color: "#14c8b4", address: "TRx9KmQvN8fQzLpWbA3uYdXcJhE7gN2sRt"       },
+];
+
+const COINS = [
+  { id: "usdt", label: "USDT", name: "Tether",        color: "#14c8b4", icon: "T₮" },
+  { id: "usdc", label: "USDC", name: "USD Coin",       color: "#2775ca", icon: "$"  },
+  { id: "eurc", label: "EURC", name: "Euro Coin",      color: "#003ec7", icon: "€"  },
+];
 
 const slideVariants = {
   initial: (dir: number) => ({ x: dir * 50, opacity: 0, scale: 0.985 }),
@@ -22,8 +32,12 @@ const slideVariants = {
 export default function DepositPage() {
   const [step, setStep] = useState<Step>(1);
   const [direction, setDirection] = useState(1);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [copiedQR, setCopiedQR] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState(NETWORKS[0]);
+  const [selectedCoin, setSelectedCoin] = useState(COINS[0]);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
-  const [selectedAmount, setSelectedAmount] = useState<string>("");
   const { mutate: initiateDeposit, data: depositInstruction } = useDeposit();
 
   const goToStep = (newStep: Step, dir: number = 1) => {
@@ -37,18 +51,8 @@ export default function DepositPage() {
       toast.error("Selecciona una cuenta bancaria");
       return;
     }
-
-    if (DEPOSIT_AMOUNT_ENABLED) {
-      goToStep(3);
-    } else {
-      submitDeposit(id);
-    }
-  };
-
-  const submitDeposit = (accountId: string) => {
-    const amount = selectedAmount || "0";
     initiateDeposit(
-      { externalAccountId: accountId, amount: amount || undefined },
+      { externalAccountId: id, amount: "0" },
       {
         onSuccess: () => goToStep(4),
         onError: (err) => toast.error(err.message),
@@ -65,6 +69,36 @@ export default function DepositPage() {
     } catch {
       toast.error("No se pudo copiar");
     }
+  };
+
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(selectedNetwork.address);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar");
+    }
+  };
+
+  const copyQR = () => {
+    const canvas = qrCanvasRef.current;
+    if (!canvas) return;
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        setCopiedQR(true);
+        setTimeout(() => setCopiedQR(false), 2000);
+      } catch {
+        const url = canvas.toDataURL();
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `wallet-qr-${selectedNetwork.badge}.png`;
+        a.click();
+        toast.success("QR descargado");
+      }
+    });
   };
 
   return (
@@ -91,7 +125,7 @@ export default function DepositPage() {
         </div>
       )}
 
-      <main className="relative z-10 pt-[92px] pb-24 lg:pb-0 px-5 lg:pl-12 lg:pr-10">
+      <main className="relative z-10 pt-[80px] pb-6 lg:pb-0 px-5 lg:pl-12 lg:pr-10">
 
         {/* Persistent breadcrumb nav — stays across all steps */}
         <div className="pt-2 mb-3 flex items-start gap-3">
@@ -122,23 +156,14 @@ export default function DepositPage() {
               <span className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/30 self-center">›</span>
               <div>
                 <span
-                  className={`text-[11px] font-inter font-semibold uppercase tracking-[0.2em] ${
-                    step === 2 || (step === 3 && DEPOSIT_AMOUNT_ENABLED) || step === 4
-                      ? "text-[var(--color-primary)]"
-                      : "text-[var(--color-on-surface-variant)]/50"
-                  }`}
+                  className="text-[11px] font-inter font-semibold uppercase tracking-[0.2em]"
+                  style={{ color: "var(--color-primary)" }}
                 >
-                  DEPÓSITO DE EUROS
+                  {step === 3 ? "DEPÓSITO EN STABLECOINS" : "DEPÓSITO DE EUROS"}
                 </span>
                 <div
                   className="mt-1.5 h-[3px] rounded-full"
-                  style={{
-                    background:
-                      step === 2 || (step === 3 && DEPOSIT_AMOUNT_ENABLED) || step === 4
-                        ? "linear-gradient(90deg, #0052ff 0%, #bc4800 100%)"
-                        : "var(--color-on-surface-variant)/15",
-                    width: "100%",
-                  }}
+                  style={{ background: "linear-gradient(90deg, #0052ff 0%, #bc4800 100%)", width: "100%" }}
                 />
               </div>
             </>
@@ -156,14 +181,14 @@ export default function DepositPage() {
               animate="animate"
               exit="exit"
               transition={{ duration: 0.38, ease: [0.25, 0.1, 0.25, 1] }}
-              className="space-y-3 pb-28 lg:pb-10 max-w-[1088px]"
+              className="space-y-[16px] pb-6 lg:pb-4 max-w-[1088px]"
             >
               {/* Page title + subtitle */}
-              <div className="space-y-1 pb-4">
-                <h1 className="font-inter font-medium text-[20px] text-[var(--color-on-surface-variant)] leading-tight pt-4">
+              <div className="space-y-0.5 pb-2">
+                <h1 className="font-inter font-medium text-[18px] text-[var(--color-on-surface-variant)] leading-tight pt-2">
                   Añade fondos a tu wallet
                 </h1>
-                <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/50">
+                <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/50">
                   Selecciona el método para añadir fondos a tu wallet
                 </p>
               </div>
@@ -179,7 +204,7 @@ export default function DepositPage() {
                 whileTap={{ scale: 0.99 }}
                 transition={{ duration: 0.18 }}
                 variants={{ rest: { y: 0 }, hover: { y: -2 } }}
-                className="w-full text-left relative overflow-hidden rounded-[22px] p-5 cursor-pointer"
+                className="w-full text-left relative overflow-hidden rounded-[22px] p-4 cursor-pointer"
                 style={{
                   background: "var(--color-surface-container-lowest)",
                   border: "1px solid rgba(0,62,199,0.10)",
@@ -206,27 +231,27 @@ export default function DepositPage() {
                   {/* Blue orb — pulled inward so it reaches center */}
                   <motion.div
                     animate={{ x: [0, 12, -5, 0], y: [0, -8, 10, 0] }}
-                    transition={{ duration: 8, repeat: Infinity }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute -top-20 -left-10 w-[460px] h-[340px] rounded-full"
                     style={{ background: "radial-gradient(ellipse at 38% 38%, rgba(0,82,255,0.13) 0%, rgba(0,82,255,0.05) 45%, transparent 70%)" }}
                   />
                   {/* Warm orb — pulled inward so it reaches center */}
                   <motion.div
                     animate={{ x: [0, -12, 9, 0], y: [0, 10, -7, 0] }}
-                    transition={{ duration: 10, repeat: Infinity, delay: 1.5 }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
                     className="absolute -bottom-20 -right-10 w-[440px] h-[320px] rounded-full"
                     style={{ background: "radial-gradient(ellipse at 62% 62%, rgba(188,72,0,0.13) 0%, rgba(188,72,0,0.05) 45%, transparent 70%)" }}
                   />
                 </motion.div>
-                <div className="relative flex items-start justify-between mb-4">
+                <div className="relative flex items-start justify-between mb-3">
                   <div
-                    className="w-12 h-12 rounded-[14px] flex items-center justify-center"
+                    className="w-10 h-10 rounded-[12px] flex items-center justify-center"
                     style={{
                       background: "linear-gradient(135deg, #3d6fd4, #5b8aff)",
                       boxShadow: "0 4px 12px rgba(0,62,199,0.18)",
                     }}
                   >
-                    <Icon name="euro_symbol" size={22} filled className="text-white" />
+                    <Icon name="euro_symbol" size={18} filled className="text-white" />
                   </div>
                   <div
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
@@ -241,15 +266,15 @@ export default function DepositPage() {
                     </span>
                   </div>
                 </div>
-                <div className="relative space-y-1.5">
-                  <h3 className="font-manrope font-semibold text-[17px] text-[var(--color-on-surface)] leading-tight">
+                <div className="relative space-y-1">
+                  <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)] leading-tight">
                     Depósito en Euros (EUR)
                   </h3>
-                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">
+                  <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">
                     Transferencia bancaria directa vía red SEPA. Los fondos suelen acreditarse en 24h hábiles.
                   </p>
                 </div>
-                <div className="relative mt-4 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid rgba(0,62,199,0.07)" }}>
+                <div className="relative mt-3 pt-2.5 flex items-center justify-between" style={{ borderTop: "1px solid rgba(0,62,199,0.07)" }}>
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(0,62,199,0.08)" }}>
                       <Icon name="security" size={14} className="text-[var(--color-primary)]" />
@@ -264,85 +289,122 @@ export default function DepositPage() {
                 </div>
               </motion.button>
 
-              {/* Coming soon section — Multiple currencies */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h2 className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)]">
-                    Próximamente
-                  </h2>
-                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70">
-                    Más divisas y métodos de depósito
-                  </p>
-                </div>
+              {/* USDT + USD — 2-col grid */}
+              <div className="grid grid-cols-2 gap-[19px]">
 
-                {/* Divisas section */}
-                <div className="space-y-2.5">
-                  <p className="text-[11px] font-inter font-semibold uppercase tracking-[0.14em] text-[var(--color-on-surface-variant)]/50">
-                    Soporte a más divisas
-                  </p>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {[
-                      { code: "USD", name: "Dólares", color: "#003ec7" },
-                      { code: "DOP", name: "Pesos RD", color: "#bc4800" },
-                      { code: "COP", name: "Pesos CO", color: "#0d9488" },
-                      { code: "MXN", name: "Pesos MX", color: "#7c3aed" },
-                    ].map((currency) => (
-                      <motion.button
-                        key={currency.code}
-                        onClick={() => toast.info(`Depósitos en ${currency.name} estarán disponibles muy pronto`)}
-                        whileHover={{ y: -2 }}
-                        whileTap={{ scale: 0.97 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex-shrink-0 flex flex-col items-center gap-2 px-4 py-3 rounded-[14px] border border-dashed transition-all cursor-not-allowed group"
-                        style={{
-                          borderColor: `${currency.color}40`,
-                          background: `${currency.color}08`,
-                        }}
-                      >
-                        <p className="font-manrope font-semibold text-[13px] text-[var(--color-on-surface)]">{currency.code}</p>
-                        <p className="text-[11px] text-[var(--color-on-surface-variant)]/60">{currency.name}</p>
-                      </motion.button>
+                {/* On-chain USDT — left */}
+                <motion.button
+                  onClick={() => goToStep(3)}
+                  initial="rest"
+                  whileHover="hover"
+                  whileTap={{ scale: 0.99 }}
+                  variants={{ rest: { y: 0 }, hover: { y: -2 } }}
+                  transition={{ duration: 0.18 }}
+                  className="text-left relative overflow-hidden rounded-[22px] p-4 cursor-pointer"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(20,200,180,0.06) 0%, rgba(0,180,160,0.02) 100%)",
+                    border: "1px solid rgba(20,200,180,0.14)",
+                    boxShadow: "0 4px 24px rgba(20,200,180,0.05), 0 1px 4px rgba(0,0,0,0.04)",
+                  }}
+                >
+                  {/* Subtle hover orbs */}
+                  <motion.div
+                    variants={{ rest: { opacity: 0 }, hover: { opacity: 1 } }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute inset-0 pointer-events-none overflow-hidden rounded-[22px]"
+                  >
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(130deg, rgba(20,200,180,0.06) 0%, rgba(0,180,160,0.02) 50%, transparent 100%)" }} />
+                    <motion.div
+                      animate={{ x: [0, -8, 5, 0], y: [0, 6, -4, 0] }}
+                      transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute -top-12 -right-8 w-[260px] h-[180px] rounded-full"
+                      style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(20,200,180,0.10) 0%, transparent 70%)" }}
+                    />
+                  </motion.div>
+
+                  <div className="relative flex items-start justify-between mb-3">
+                    {/* Tether icon */}
+                    <div className="w-10 h-10 rounded-[12px] flex items-center justify-center"
+                      style={{ background: "rgba(20,200,180,0.12)", border: "1px solid rgba(20,200,180,0.20)" }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 5h12v2.5H13.3V10c3.2.18 5.7.9 5.7 1.75S16.5 13.57 13.3 13.75V19h-2.6v-5.25C7.5 13.57 5 12.85 5 12s2.5-1.57 5.7-1.75V7.5H6V5Z" fill="rgba(20,200,180,0.9)" />
+                      </svg>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "rgba(20,200,180,0.09)", border: "1px solid rgba(20,200,180,0.18)" }}>
+                      <span className="w-1.5 h-1.5 rounded-full block" style={{ background: "#14c8b4" }} />
+                      <span className="text-[10px] font-inter font-bold uppercase tracking-[0.1em]" style={{ color: "#0e9e92" }}>On-chain</span>
+                    </div>
+                  </div>
+
+                  <div className="relative space-y-1">
+                    <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)] leading-tight">Depósitos en Stablecoins</h3>
+                    <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">Recibe pagos internacionales en USDT, USDC o EURC</p>
+                  </div>
+
+                  <div className="relative mt-3 pt-2.5 flex items-center gap-1.5" style={{ borderTop: "1px solid rgba(20,200,180,0.09)" }}>
+                    {["USDT", "USDC", "EURC"].map((t) => (
+                      <span key={t} className="text-[10px] font-inter font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: "rgba(20,200,180,0.07)", color: "#0e9e92", border: "1px solid rgba(20,200,180,0.14)" }}>
+                        {t}
+                      </span>
                     ))}
                   </div>
-                </div>
+                </motion.button>
 
-                {/* Métodos alternativos section */}
-                <div className="space-y-2.5 pt-2">
-                  <p className="text-[11px] font-inter font-semibold uppercase tracking-[0.14em] text-[var(--color-on-surface-variant)]/50">
-                    Métodos alternativos
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: "alternate_email", label: "Vía Alias", sub: "Recibe de otros usuarios.", bg: "#f0f3fa", color: "#003ec7" },
-                      { icon: "qr_code_scanner", label: "Escaneo QR", sub: "Transferencia inmediata.", bg: "#e8efff", color: "#0052ff" },
-                    ].map((item) => (
-                      <motion.button
-                        key={item.label}
-                        onClick={() => toast.info(`${item.label} estará disponible muy pronto`)}
-                        whileHover={{ y: -2 }}
-                        whileTap={{ scale: 0.97 }}
-                        transition={{ duration: 0.2 }}
-                        className="p-4 rounded-[16px] text-left border border-dashed transition-all cursor-not-allowed"
-                        style={{
-                          background: item.bg,
-                          borderColor: `${item.color}30`,
-                        }}
-                      >
-                        <div
-                          className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-2.5 flex-shrink-0"
-                          style={{
-                            background: "rgba(255,255,255,0.90)",
-                            boxShadow: "0 2px 6px rgba(0,62,199,0.10)",
-                          }}
-                        >
-                          <Icon name={item.icon} size={18} className="text-[var(--color-primary)]" />
-                        </div>
-                        <p className="font-manrope font-semibold text-sm text-[var(--color-on-surface)] mb-0.5">{item.label}</p>
-                        <p className="text-xs font-inter text-[var(--color-on-surface-variant)]/65">{item.sub}</p>
-                      </motion.button>
-                    ))}
+                {/* USD — right (existing coming soon card restyled to match) */}
+                <motion.button
+                  onClick={() => toast.info("Depósitos en dólares disponibles muy pronto", { duration: 2000 })}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.995 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-left relative overflow-hidden rounded-[22px] p-4 cursor-pointer opacity-60 hover:opacity-80 transition-opacity"
+                  style={{ background: "rgba(248,249,250,0.5)", border: "2px dashed var(--color-outline-variant)" }}
+                >
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0"
+                        style={{ background: "var(--color-surface-container-high)" }}>
+                        <Icon name="payments" size={18} className="text-[var(--color-on-surface-variant)]/35" />
+                      </div>
+                      <span className="text-[10px] font-inter font-bold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full flex-shrink-0"
+                        style={{ background: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" }}>
+                        Próximamente
+                      </span>
+                    </div>
+                    <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)]/50 leading-tight mb-1">
+                      Depósito en Dólares (USD)
+                    </h3>
+                    <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/40 leading-relaxed">
+                      Transferencias ACH desde bancos de Estados Unidos.
+                    </p>
                   </div>
-                </div>
+                </motion.button>
+
+              </div>
+
+              {/* Secondary methods — 2-col grid */}
+              <div className="grid grid-cols-2 gap-3 mt-1">
+                {[
+                  { icon: "alternate_email", label: "Vía Alias", sub: "Recibe de otros usuarios.", bg: "#f0f3fa" },
+                  { icon: "qr_code_scanner", label: "Escaneo QR", sub: "Transferencia inmediata.", bg: "#e8efff" },
+                ].map((item) => (
+                  <motion.button
+                    key={item.label}
+                    onClick={() => toast.info(`${item.label} disponible muy pronto`, { duration: 2000 })}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    className="p-4 rounded-[22px] text-left opacity-70 hover:opacity-90 transition-opacity cursor-pointer"
+                    style={{ background: item.bg }}
+                  >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2.5"
+                      style={{ background: "rgba(255,255,255,0.85)", boxShadow: "0 1px 6px rgba(0,62,199,0.10)" }}>
+                      <Icon name={item.icon} size={20} className="text-[var(--color-primary)]" />
+                    </div>
+                    <p className="font-manrope font-bold text-sm text-[var(--color-on-surface)]">{item.label}</p>
+                    <p className="text-xs font-inter text-[var(--color-on-surface-variant)] mt-1">{item.sub}</p>
+                  </motion.button>
+                ))}
               </div>
             </motion.div>
           )}
@@ -371,8 +433,8 @@ export default function DepositPage() {
             </motion.div>
           )}
 
-          {/* Step 3: Select Deposit Amount (Development Mode) */}
-          {step === 3 && DEPOSIT_AMOUNT_ENABLED && (
+          {/* Step 3: Stablecoin On-chain Deposit */}
+          {step === 3 && (
             <motion.div
               key="step3"
               custom={direction}
@@ -381,14 +443,179 @@ export default function DepositPage() {
               animate="animate"
               exit="exit"
               transition={{ duration: 0.38, ease: [0.25, 0.1, 0.25, 1] }}
-              className="max-w-[1088px]"
+              className="pb-6 max-w-[1088px] space-y-4"
             >
-              <DepositAmountSelector
-                selectedAmount={selectedAmount}
-                onSelectAmount={setSelectedAmount}
-                onBack={() => goToStep(2, -1)}
-                onContinue={() => submitDeposit(selectedAccount)}
-              />
+              <div className="space-y-0.5 pb-1">
+                <h1 className="font-inter font-medium text-[18px] text-[var(--color-on-surface-variant)] leading-tight pt-2">
+                  Depósito en Stablecoins
+                </h1>
+                <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/50">
+                  Selecciona la moneda y red, luego envía desde cualquier wallet compatible.
+                </p>
+              </div>
+
+              {/* Stablecoin selector — primary choice */}
+              <div>
+                <p className="text-[10px] font-inter font-semibold uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/40 mb-2 px-0.5">
+                  Moneda
+                </p>
+                <div className="flex gap-2">
+                  {COINS.map((coin) => (
+                    <motion.button
+                      key={coin.id}
+                      onClick={() => setSelectedCoin(coin)}
+                      whileHover={{ y: -1, scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center gap-2.5 px-4 py-2.5 rounded-[14px] transition-colors duration-150 cursor-pointer"
+                      style={{
+                        background: selectedCoin.id === coin.id
+                          ? `rgba(${coin.id === "usdt" ? "20,200,180" : coin.id === "usdc" ? "39,117,202" : "0,62,199"},0.10)`
+                          : "rgba(0,0,0,0.03)",
+                        border: `1.5px solid ${selectedCoin.id === coin.id ? coin.color + "35" : "rgba(0,0,0,0.07)"}`,
+                        boxShadow: selectedCoin.id === coin.id ? `0 2px 12px ${coin.color}20` : "none",
+                      }}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-[9px] flex items-center justify-center flex-shrink-0 text-white text-[11px] font-extrabold"
+                        style={{ background: coin.color, opacity: selectedCoin.id === coin.id ? 1 : 0.35 }}
+                      >
+                        {coin.icon}
+                      </div>
+                      <span className="font-inter font-bold text-[13px] text-[var(--color-on-surface)]">{coin.label}</span>
+                      <span className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/45">{coin.name}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* QR + address (left) · Network selector + Importante (right) */}
+              <div className="flex gap-6 items-stretch">
+
+                {/* QR + address — hero */}
+                <div
+                  className="flex-[2] min-w-0 rounded-[24px] overflow-hidden relative"
+                  style={{
+                    background: "var(--color-surface-container-lowest)",
+                    border: `1px solid ${selectedCoin.color}22`,
+                    boxShadow: `0 4px 24px ${selectedCoin.color}14, 0 1px 4px rgba(0,0,0,0.04)`,
+                    transition: "border-color 0.3s, box-shadow 0.3s",
+                  }}
+                >
+                  <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(135deg, ${selectedCoin.color}07 0%, transparent 60%)` }} />
+                  <div className="relative flex flex-col items-center pt-9 pb-7 px-7">
+                    <div className="p-4 rounded-[18px] mb-5" style={{ background: "white", boxShadow: `0 2px 20px ${selectedCoin.color}18` }}>
+                      <QRCodeCanvas
+                        ref={qrCanvasRef}
+                        value={selectedNetwork.address}
+                        size={206}
+                        fgColor="#003ec7"
+                        bgColor="white"
+                        level="M"
+                      />
+                    </div>
+                    <button
+                      onClick={copyAddress}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] mb-4 font-inter font-semibold text-[13px] transition-all active:scale-[0.98] cursor-pointer"
+                      style={{
+                        background: copiedAddress ? `${selectedCoin.color}18` : "rgba(0,0,0,0.04)",
+                        border: `1.5px solid ${copiedAddress ? selectedCoin.color + "35" : "rgba(0,0,0,0.07)"}`,
+                        color: copiedAddress ? selectedCoin.color : "var(--color-on-surface-variant)",
+                      }}
+                    >
+                      <Icon name={copiedAddress ? "check_circle" : "content_copy"} size={15} />
+                      {copiedAddress ? "¡Dirección copiada!" : "Copiar Dirección"}
+                    </button>
+                    <div className="w-full rounded-[14px] overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.06)" }}>
+                      <div className="px-4 py-2" style={{ background: "rgba(0,0,0,0.02)" }}>
+                        <p className="text-[10px] font-inter font-semibold uppercase tracking-[0.16em] text-[var(--color-on-surface-variant)]/40">
+                          Dirección · {selectedCoin.label} · {selectedNetwork.badge}
+                        </p>
+                      </div>
+                      <button
+                        onClick={copyAddress}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left group transition-colors duration-100"
+                        style={{ background: "var(--color-surface-container-lowest)" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,62,199,0.04)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "var(--color-surface-container-lowest)")}
+                      >
+                        <p className="font-mono text-[11.5px] font-medium text-[var(--color-on-surface)] truncate">
+                          {selectedNetwork.address}
+                        </p>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {copiedAddress ? (
+                            <span className="text-[11px] font-inter font-semibold" style={{ color: selectedCoin.color }}>¡Copiado!</span>
+                          ) : (
+                            <Icon name="content_copy" size={13} className="text-[var(--color-on-surface-variant)]/30 group-hover:text-[var(--color-primary)]/60 transition-colors" />
+                          )}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: network selector + importante */}
+                <div className="flex-[3] min-w-0 flex flex-col gap-3 h-full">
+                  <p className="text-[10px] font-inter font-semibold uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/40 px-0.5">
+                    Red de blockchain
+                  </p>
+                  <div
+                    className="rounded-[22px] overflow-hidden"
+                    style={{
+                      background: "var(--color-surface-container-lowest)",
+                      border: "1px solid rgba(0,0,0,0.05)",
+                      boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    {NETWORKS.map((net, idx) => (
+                      <button
+                        key={net.id}
+                        onClick={() => { setSelectedNetwork(net); setCopiedAddress(false); }}
+                        className="w-full flex items-center gap-3 px-5 py-4 text-left transition-all duration-150 cursor-pointer"
+                        style={{
+                          background: selectedNetwork.id === net.id ? `rgba(${net.id === "eth" ? "98,126,234" : net.id === "base" ? "0,82,255" : "20,200,180"},0.07)` : "transparent",
+                          borderBottom: idx < NETWORKS.length - 1 ? "1px solid rgba(0,0,0,0.04)" : "none",
+                        }}
+                      >
+                        <div
+                          className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0 text-white text-[13px] font-extrabold"
+                          style={{ background: net.color, opacity: selectedNetwork.id === net.id ? 1 : 0.35 }}
+                        >
+                          {net.id === "eth" ? "Ξ" : net.id === "base" ? "B" : "T"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-inter font-semibold text-[14px] text-[var(--color-on-surface)]">{net.label}</p>
+                          <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/45">{net.badge}</p>
+                        </div>
+                        {selectedNetwork.id === net.id && (
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: net.color }}>
+                            <Icon name="check" size={12} className="text-white" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Importante — justo debajo de la red, crece hasta el final */}
+                  <div className="flex-1 rounded-[18px] overflow-hidden flex flex-col" style={{ border: "1px solid rgba(20,200,180,0.12)" }}>
+                    <div className="px-5 py-2.5" style={{ background: "rgba(20,200,180,0.06)" }}>
+                      <p className="text-[10px] font-inter font-bold uppercase tracking-[0.2em]" style={{ color: "#0e9e92" }}>Importante</p>
+                    </div>
+                    <div className="flex-1 px-5 py-4 flex flex-col gap-3" style={{ background: "rgba(20,200,180,0.02)" }}>
+                      {[
+                        "Envía únicamente stablecoins por la red seleccionada. Otras redes pueden causar pérdida de fondos.",
+                        "Recibirás una notificación cuando los fondos estén disponibles en tu cuenta.",
+                      ].map((note, idx) => (
+                        <div key={idx} className="flex items-start gap-2.5">
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[5px]" style={{ background: "rgba(20,200,180,0.45)" }} />
+                          <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/65 leading-relaxed">{note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </motion.div>
           )}
 
@@ -434,7 +661,7 @@ export default function DepositPage() {
                       background: "radial-gradient(circle, rgba(100,168,255,0.22) 0%, transparent 68%)",
                     }}
                     animate={{ x: [0, 20, 6, 0], y: [0, 14, 28, 0] }}
-                    transition={{ duration: 16, repeat: Infinity }}
+                    transition={{ duration: 16, ease: "easeInOut", repeat: Infinity }}
                   />
                   {/* Layer: bottom-right depth orb */}
                   <motion.div
@@ -445,7 +672,7 @@ export default function DepositPage() {
                       background: "radial-gradient(circle, rgba(0,48,190,0.52) 0%, transparent 68%)",
                     }}
                     animate={{ x: [0, -16, -28, 0], y: [0, -10, -20, 0] }}
-                    transition={{ duration: 22, repeat: Infinity, delay: 2.5 }}
+                    transition={{ duration: 22, ease: "easeInOut", repeat: Infinity, delay: 2.5 }}
                   />
                   {/* Layer: orange warm bloom */}
                   <motion.div
@@ -456,7 +683,7 @@ export default function DepositPage() {
                       background: "radial-gradient(circle, rgba(255,185,110,0.09) 0%, rgba(255,140,60,0.04) 45%, transparent 68%)",
                     }}
                     animate={{ x: [0, -18, -30, -18, 0], y: [0, 20, 10, -4, 0] }}
-                    transition={{ duration: 19, repeat: Infinity, delay: 1.2 }}
+                    transition={{ duration: 19, ease: "easeInOut", repeat: Infinity, delay: 1.2 }}
                   />
                   {/* Layer: grid */}
                   <div
@@ -579,6 +806,7 @@ export default function DepositPage() {
                     { label: "Nombre del banco", value: depositInstruction.bank_name, icon: "account_balance" },
                     { label: "Dirección", value: depositInstruction.bank_address, icon: "location_on" },
                     { label: "IBAN", value: depositInstruction.iban, icon: "credit_card", mono: true },
+                    { label: "BIC / SWIFT", value: depositInstruction.bic, icon: "swap_horiz", mono: true },
                     { label: "Beneficiario", value: depositInstruction.account_holder_name, icon: "person" },
                   ].map((field, idx, arr) => (
                     <button
