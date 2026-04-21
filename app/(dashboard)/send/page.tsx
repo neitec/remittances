@@ -23,7 +23,18 @@ import { SendSkeleton } from "@/components/motion/ShimmerSkeleton";
 import Image from "next/image";
 
 type Step = 1 | 2 | 3 | 4 | "processing" | "success" | "error";
-type SendMode = "user" | "bank";
+type SendMode = "user" | "bank" | "stablecoin";
+
+const SEND_NETWORKS = [
+  { id: "eth",  label: "Ethereum", badge: "ERC-20", color: "#627eea", },
+  { id: "base", label: "Base",     badge: "Base",    color: "#0052ff", },
+  { id: "tron", label: "Tron",     badge: "TRC-20",  color: "#14c8b4", },
+];
+const SEND_COINS = [
+  { id: "usdt", label: "USDT", name: "Tether",   color: "#14c8b4", icon: "T₮", mockBalance: 250.00 },
+  { id: "usdc", label: "USDC", name: "USD Coin",  color: "#2775ca", icon: "$",  mockBalance: 100.00 },
+  { id: "eurc", label: "EURC", name: "Euro Coin", color: "#003ec7", icon: "€",  mockBalance: 75.50  },
+];
 
 export default function SendPage() {
   const router = useRouter();
@@ -33,6 +44,10 @@ export default function SendPage() {
   const [step, setStep] = useState<Step>(1);
   const [sendMode, setSendMode] = useState<SendMode>("user");
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>("");
+  const [scCoin, setScCoin] = useState(SEND_COINS[0]);
+  const [scNetwork, setScNetwork] = useState(SEND_NETWORKS[0]);
+  const [scAddress, setScAddress] = useState("");
+  const [scAmount, setScAmount] = useState("");
   const [selectedAccountData, setSelectedAccountData] = useState<ExternalAccount | null>(null);
   const [countryCode, setCountryCode] = useState("+34");
   const [phone, setPhone] = useState("");
@@ -113,17 +128,10 @@ export default function SendPage() {
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Header */}
-      <AppHeader
-        showBack={step !== 1 && step !== "processing" && step !== "success" && step !== "error"}
-        onBack={() => {
-          if (step === 2) setStep(1);
-          else if (step === 3) setStep(2);
-          else if (step === 4) setStep(3);
-        }}
-      />
+      <AppHeader />
 
       {/* Main content */}
-      <main className="pt-[92px] px-5 pb-32 lg:pb-0 lg:pl-12 lg:pr-10">
+      <main className="pt-[80px] px-5 pb-6 lg:pb-0 lg:pl-12 lg:pr-10">
         <div className="max-w-[1088px]">
 
         {/* Persistent breadcrumb nav — stays across all steps */}
@@ -159,7 +167,7 @@ export default function SendPage() {
                     className="text-[11px] font-inter font-semibold uppercase tracking-[0.2em]"
                     style={{ color: "var(--color-primary)" }}
                   >
-                    {sendMode === "bank" ? "A CUENTA BANCARIA" : "A USUARIO REMITA"}
+                    {sendMode === "bank" ? "A CUENTA BANCARIA" : sendMode === "stablecoin" ? "TRANSFERENCIA EN STABLECOINS" : "A USUARIO REMITA"}
                   </span>
                   <div
                     className="mt-1.5 h-[3px] rounded-full"
@@ -218,14 +226,14 @@ export default function SendPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-3 pb-28 lg:pb-10 max-w-[1088px]"
+              className="space-y-[13px] pb-6 lg:pb-4 max-w-[1088px]"
             >
-              {/* Page title + subtitle — same format as deposit */}
-              <div className="space-y-1 pb-4">
-                <h1 className="font-inter font-medium text-[20px] text-[var(--color-on-surface-variant)] leading-tight pt-4">
+              {/* Page title + subtitle */}
+              <div className="space-y-0.5 pb-2">
+                <h1 className="font-inter font-medium text-[18px] text-[var(--color-on-surface-variant)] leading-tight pt-2">
                   Transfiere fondos desde tu wallet
                 </h1>
-                <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/50">
+                <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/50">
                   Envía dinero desde tu wallet digital
                 </p>
               </div>
@@ -238,7 +246,7 @@ export default function SendPage() {
                 whileTap={{ scale: 0.99 }}
                 transition={{ duration: 0.18 }}
                 variants={{ rest: { y: 0 }, hover: { y: -2 } }}
-                className="w-full text-left relative overflow-hidden rounded-[22px] p-5 cursor-pointer"
+                className="w-full text-left relative overflow-hidden rounded-[22px] p-4 cursor-pointer"
                 style={{
                   background: "var(--color-surface-container-lowest)",
                   border: "1px solid rgba(0,62,199,0.10)",
@@ -271,8 +279,8 @@ export default function SendPage() {
                   />
                 </motion.div>
 
-                <div className="relative flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-[14px] flex items-center justify-center overflow-hidden" style={{ background: "rgba(0,62,199,0.06)", boxShadow: "0 4px 12px rgba(0,62,199,0.10)" }}>
+                <div className="relative flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-[12px] flex items-center justify-center overflow-hidden" style={{ background: "rgba(0,62,199,0.06)", boxShadow: "0 4px 12px rgba(0,62,199,0.10)" }}>
                     <Image src="/remita-isologo.png" alt="Remita" width={40} height={40} className="object-contain" style={{ mixBlendMode: "multiply" }} />
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success-border)" }}>
@@ -283,11 +291,11 @@ export default function SendPage() {
                     <span className="text-[10px] font-inter font-bold uppercase tracking-[0.1em] text-[var(--color-success-text)]">Habilitado</span>
                   </div>
                 </div>
-                <div className="relative space-y-1.5">
-                  <h3 className="font-manrope font-semibold text-[17px] text-[var(--color-on-surface)] leading-tight">A un usuario de Remita</h3>
-                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">Envío entre wallets on-chain.</p>
+                <div className="relative space-y-1">
+                  <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)] leading-tight">A un usuario de Remita</h3>
+                  <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">Envío entre wallets on-chain.</p>
                 </div>
-                <div className="relative mt-4 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid rgba(0,62,199,0.07)" }}>
+                <div className="relative mt-3 pt-2.5 flex items-center justify-between" style={{ borderTop: "1px solid rgba(0,62,199,0.07)" }}>
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(0,62,199,0.09)" }}>
                       <Icon name="bolt" size={14} className="text-[var(--color-primary)]" />
@@ -300,33 +308,94 @@ export default function SendPage() {
                 </div>
               </motion.button>
 
-              {/* TR2: External — bank account (coming soon) */}
+              {/* TR2 + TR3: 2-col grid */}
+              <div className="grid grid-cols-2 gap-[16px]">
+
+              {/* TR2: Stablecoin on-chain transfer */}
               <motion.button
-                onClick={() => toast.info("Las transferencias bancarias estarán disponibles muy pronto")}
+                onClick={() => { setSendMode("stablecoin"); setStep(2); setScAddress(""); setScAmount(""); }}
+                initial="rest"
+                whileHover="hover"
+                whileTap={{ scale: 0.99 }}
+                transition={{ duration: 0.18 }}
+                variants={{ rest: { y: 0 }, hover: { y: -2 } }}
+                className="w-full text-left relative overflow-hidden rounded-[22px] p-4 cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, rgba(20,200,180,0.06) 0%, rgba(0,180,160,0.02) 100%)",
+                  border: "1px solid rgba(20,200,180,0.16)",
+                  boxShadow: "0 4px 24px rgba(20,200,180,0.07), 0 1px 4px rgba(0,0,0,0.04)",
+                }}
+              >
+                <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(130deg, rgba(20,200,180,0.04) 0%, transparent 60%)" }} />
+                <motion.div
+                  variants={{ rest: { opacity: 0 }, hover: { opacity: 1 } }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 pointer-events-none overflow-hidden rounded-[22px]"
+                >
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(130deg, rgba(20,200,180,0.07) 0%, rgba(0,180,160,0.03) 50%, transparent 100%)" }} />
+                  <motion.div
+                    animate={{ x: [0, -8, 5, 0], y: [0, 6, -4, 0] }}
+                    transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute -top-16 -right-12 w-[380px] h-[260px] rounded-full"
+                    style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(20,200,180,0.12) 0%, transparent 70%)" }}
+                  />
+                </motion.div>
+
+                <div className="relative flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-[12px] flex items-center justify-center"
+                    style={{ background: "rgba(20,200,180,0.12)", border: "1px solid rgba(20,200,180,0.20)" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 5h12v2.5H13.3V10c3.2.18 5.7.9 5.7 1.75S16.5 13.57 13.3 13.75V19h-2.6v-5.25C7.5 13.57 5 12.85 5 12s2.5-1.57 5.7-1.75V7.5H6V5Z" fill="rgba(20,200,180,0.9)" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "rgba(20,200,180,0.09)", border: "1px solid rgba(20,200,180,0.18)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full block" style={{ background: "#14c8b4" }} />
+                    <span className="text-[10px] font-inter font-bold uppercase tracking-[0.1em]" style={{ color: "#0e9e92" }}>On-chain</span>
+                  </div>
+                </div>
+                <div className="relative space-y-1">
+                  <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)] leading-tight">En Stablecoins</h3>
+                  <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">Envía USDT, USDC o EURC directamente a cualquier wallet.</p>
+                </div>
+                <div className="relative mt-3 pt-2.5 flex items-center gap-1.5" style={{ borderTop: "1px solid rgba(20,200,180,0.09)" }}>
+                  {["USDT","USDC","EURC"].map(t => (
+                    <span key={t} className="text-[10px] font-inter font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: "rgba(20,200,180,0.07)", color: "#0e9e92", border: "1px solid rgba(20,200,180,0.14)" }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </motion.button>
+
+              {/* TR3: External — bank account (coming soon) */}
+              <motion.button
+                onClick={() => toast.info("Las transferencias bancarias estarán disponibles muy pronto", { duration: 2000 })}
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.995 }}
                 transition={{ duration: 0.15 }}
-                className="w-full text-left relative overflow-hidden rounded-[22px] p-5 cursor-pointer"
+                className="text-left relative overflow-hidden rounded-[22px] p-4 cursor-pointer opacity-60 hover:opacity-80 transition-opacity"
                 style={{ background: "rgba(248,249,250,0.5)", border: "2px dashed var(--color-outline-variant)" }}
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-surface-container-high)" }}>
-                    <Icon name="account_balance" size={22} className="text-[var(--color-on-surface-variant)]/35" />
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-surface-container-high)" }}>
+                      <Icon name="account_balance" size={18} className="text-[var(--color-on-surface-variant)]/35" />
+                    </div>
+                    <span className="text-[10px] font-inter font-bold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full flex-shrink-0"
+                      style={{ background: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" }}>
+                      Próximamente
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-manrope font-bold text-[var(--color-on-surface)]/50">A una cuenta bancaria</h3>
-                    <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/40 mt-1 leading-relaxed">
-                      Transferencias externas a usuarios fuera de Remita. Estamos trabajando para habilitar esta opción.
-                    </p>
-                  </div>
-                  <span
-                    className="flex-shrink-0 text-[10px] font-inter font-bold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full"
-                    style={{ background: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" }}
-                  >
-                    Próximamente
-                  </span>
+                  <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)]/50 leading-tight mb-1">
+                    A una cuenta bancaria
+                  </h3>
+                  <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/40 leading-relaxed">
+                    Transferencias externas a usuarios fuera de Remita.
+                  </p>
                 </div>
               </motion.button>
+
+              </div>{/* end 2-col grid */}
 
               {/* Promotional card */}
               <div
@@ -334,11 +403,11 @@ export default function SendPage() {
                 style={{
                   background: "linear-gradient(135deg, #FFF4ED 0%, #FFEEDD 100%)",
                   border: "1px solid rgba(188,72,0,0.12)",
-                  minHeight: "190px",
+                  minHeight: "150px",
                 }}
               >
                 {/* Left: text content */}
-                <div className="relative z-10 flex-1 px-6 py-6 space-y-3 flex flex-col justify-center">
+                <div className="relative z-10 flex-1 px-5 py-4 space-y-2 flex flex-col justify-center">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit" style={{ background: "rgba(188,72,0,0.12)" }}>
                     <span className="w-1.5 h-1.5 rounded-full block" style={{ background: "#bc4800" }} />
                     <span className="text-[10px] font-inter font-bold uppercase tracking-[0.14em]" style={{ color: "#bc4800" }}>Promoción</span>
@@ -405,6 +474,162 @@ export default function SendPage() {
                 }}
                 showInlineCreate={true}
               />
+            </motion.div>
+          )}
+
+          {/* Step 2: Stablecoin transfer */}
+          {hasBalance && step === 2 && sendMode === "stablecoin" && (
+            <motion.div
+              key="step2-stablecoin"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+              className="pb-6 max-w-[1088px] space-y-3"
+            >
+              <div className="space-y-0.5 pb-1">
+                <h1 className="font-inter font-medium text-[18px] text-[var(--color-on-surface-variant)] leading-tight pt-2">Envía Stablecoins</h1>
+                <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/50">Selecciona la moneda, la red y la dirección de destino.</p>
+              </div>
+
+              {/* Coin selector — top row */}
+              <div>
+                <p className="text-[10px] font-inter font-semibold uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/40 mb-2 px-0.5">Moneda</p>
+                <div className="flex gap-2">
+                  {SEND_COINS.map((coin) => (
+                    <motion.button key={coin.id} onClick={() => setScCoin(coin)}
+                      whileHover={{ y: -1, scale: 1.01 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}
+                      className="flex items-center gap-2.5 px-4 py-2.5 rounded-[14px] transition-colors duration-150 cursor-pointer"
+                      style={{
+                        background: scCoin.id === coin.id ? `rgba(${coin.id === "usdt" ? "20,200,180" : coin.id === "usdc" ? "39,117,202" : "0,62,199"},0.10)` : "rgba(0,0,0,0.03)",
+                        border: `1.5px solid ${scCoin.id === coin.id ? coin.color + "35" : "rgba(0,0,0,0.07)"}`,
+                        boxShadow: scCoin.id === coin.id ? `0 2px 10px ${coin.color}20` : "none",
+                      }}>
+                      <div className="w-7 h-7 rounded-[9px] flex items-center justify-center text-white text-[11px] font-extrabold flex-shrink-0"
+                        style={{ background: coin.color, opacity: scCoin.id === coin.id ? 1 : 0.35 }}>{coin.icon}</div>
+                      <span className="font-inter font-bold text-[13px] text-[var(--color-on-surface)]">{coin.label}</span>
+                      <span className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/45">{coin.name}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2-col: form left, network+info right */}
+              <div className="flex gap-6 items-stretch">
+
+                {/* Left: address + amount + summary + button */}
+                <div className="flex-[2] min-w-0 space-y-2">
+                  {/* Address */}
+                  <div className="rounded-[20px] overflow-hidden" style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+                    <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Dirección de destino · {scNetwork.badge}</p>
+                    </div>
+                    <div className="px-4 py-3">
+                      <input type="text" placeholder={`Dirección ${scNetwork.badge} del destinatario`}
+                        value={scAddress} onChange={(e) => setScAddress(e.target.value)}
+                        className="w-full h-10 px-4 rounded-[12px] font-mono text-[12.5px] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/30 placeholder:font-sans"
+                        style={{ background: "var(--color-surface-container-lowest)" }} />
+                      {scAddress.length > 0 && scAddress.length < 26 && (
+                        <p className="text-[10.5px] font-inter mt-1.5 px-1" style={{ color: "var(--color-error)" }}>Dirección demasiado corta</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Amount */}
+                  <div className="rounded-[20px] overflow-hidden relative"
+                    style={{ background: "linear-gradient(160deg, #f5f7ff 0%, #ffffff 55%)", border: `1px solid ${scCoin.color}22`, boxShadow: `0 3px 16px ${scCoin.color}12`, transition: "border-color 0.3s" }}>
+                    <div className="px-4 py-2.5" style={{ borderBottom: `1px solid ${scCoin.color}14` }}>
+                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Cantidad</p>
+                    </div>
+                    <div className="px-4 pb-3 space-y-2">
+                      <div className="flex items-baseline justify-center gap-1 pt-1">
+                        <span className="text-[16px] font-manrope font-bold" style={{ color: scCoin.color }}>{scCoin.label}</span>
+                        <input type="text" inputMode="decimal" placeholder="0.00" value={scAmount}
+                          onChange={(e) => { const v = e.target.value; if (!v || /^\d*\.?\d*$/.test(v)) setScAmount(v); }}
+                          className="text-[38px] font-manrope font-bold text-center text-[var(--color-on-surface)] border-0 bg-transparent outline-none placeholder:text-[var(--color-on-surface-variant)]/15 w-[150px]" />
+                      </div>
+                      <div className="flex justify-center">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full"
+                          style={{ background: `rgba(${scCoin.id === "usdt" ? "20,200,180" : scCoin.id === "usdc" ? "39,117,202" : "0,62,199"},0.07)`, border: `1px solid ${scCoin.color}25` }}>
+                          <Icon name="account_balance_wallet" size={11} className="flex-shrink-0" />
+                          <span className="font-inter text-[11px]" style={{ color: scCoin.color }}>
+                            Disponible: <strong>{scCoin.mockBalance.toFixed(2)} {scCoin.label}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  {scAddress.length >= 26 && parseFloat(scAmount) > 0 && (
+                    <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className="flex items-center justify-between px-4 py-3 rounded-[16px]"
+                      style={{ background: `rgba(${scCoin.id === "usdt" ? "20,200,180" : scCoin.id === "usdc" ? "39,117,202" : "0,62,199"},0.07)`, border: `1px solid ${scCoin.color}25` }}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-[11px] font-extrabold" style={{ background: scCoin.color }}>{scCoin.icon}</div>
+                        <div>
+                          <p className="font-manrope font-bold text-[var(--color-on-surface)] text-[13px]">{scAddress.slice(0, 8)}…{scAddress.slice(-6)}</p>
+                          <p className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/50">{scNetwork.label} · {scNetwork.badge}</p>
+                        </div>
+                      </div>
+                      <p className="font-manrope font-bold text-[20px]" style={{ color: scCoin.color }}>{scAmount} {scCoin.label}</p>
+                    </motion.div>
+                  )}
+
+                  {/* Button */}
+                  <motion.button
+                    onClick={() => toast.success("Transferencia iniciada")}
+                    disabled={scAddress.length < 26 || !scAmount || parseFloat(scAmount) <= 0}
+                    whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}
+                    className="w-full py-3.5 rounded-[16px] font-manrope font-bold text-[14px] text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
+                    style={{ background: `linear-gradient(135deg, ${scCoin.color} 0%, ${scCoin.id === "usdt" ? "#0e9e92" : scCoin.id === "usdc" ? "#1a5fa8" : "#002baa"} 100%)`, boxShadow: `0 4px 16px ${scCoin.color}35` }}>
+                    Transferir {scAmount ? `${scAmount} ${scCoin.label}` : scCoin.label}
+                  </motion.button>
+                </div>
+
+                {/* Right: network selector + info */}
+                <div className="flex-[3] min-w-0 flex flex-col gap-3 h-full">
+                  <p className="text-[10px] font-inter font-semibold uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/40 px-0.5">Red de blockchain</p>
+                  <div className="rounded-[22px] overflow-hidden" style={{ background: "var(--color-surface-container-lowest)", border: "1px solid rgba(0,0,0,0.05)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+                    {SEND_NETWORKS.map((net, idx) => (
+                      <button key={net.id} onClick={() => setScNetwork(net)}
+                        className="w-full flex items-center gap-3 px-5 py-4 text-left transition-all duration-150 cursor-pointer"
+                        style={{
+                          background: scNetwork.id === net.id ? `rgba(${net.id === "eth" ? "98,126,234" : net.id === "base" ? "0,82,255" : "20,200,180"},0.07)` : "transparent",
+                          borderBottom: idx < SEND_NETWORKS.length - 1 ? "1px solid rgba(0,0,0,0.04)" : "none",
+                        }}>
+                        <div className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0 text-white text-[13px] font-extrabold"
+                          style={{ background: net.color, opacity: scNetwork.id === net.id ? 1 : 0.35 }}>
+                          {net.id === "eth" ? "Ξ" : net.id === "base" ? "B" : "T"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-inter font-semibold text-[14px] text-[var(--color-on-surface)]">{net.label}</p>
+                          <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/45">{net.badge}</p>
+                        </div>
+                        {scNetwork.id === net.id && (
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: net.color }}>
+                            <Icon name="check" size={12} className="text-white" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex-1 rounded-[18px] overflow-hidden flex flex-col" style={{ border: "1px solid rgba(20,200,180,0.12)" }}>
+                    <div className="px-5 py-2.5" style={{ background: "rgba(20,200,180,0.06)" }}>
+                      <p className="text-[10px] font-inter font-bold uppercase tracking-[0.2em]" style={{ color: "#0e9e92" }}>Importante</p>
+                    </div>
+                    <div className="flex-1 px-5 py-4 flex flex-col gap-3" style={{ background: "rgba(20,200,180,0.02)" }}>
+                      {["Verifica siempre la dirección de destino y la red antes de enviar.", "Recibirás una notificación cuando la transferencia sea confirmada en la blockchain."].map((note, idx) => (
+                        <div key={idx} className="flex items-start gap-2.5">
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[5px]" style={{ background: "rgba(20,200,180,0.45)" }} />
+                          <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/65 leading-relaxed">{note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 
