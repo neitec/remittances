@@ -8,7 +8,8 @@ interface TransferProcessingScreenProps {
   amount: number;
   recipientName: string;
   recipientIdentifier: string;
-  senderName?: string;
+  senderName: string;
+  isTransferComplete: boolean;
   onComplete: () => void;
 }
 
@@ -33,7 +34,8 @@ export function TransferProcessingScreen({
   amount,
   recipientName,
   recipientIdentifier,
-  senderName = "Eduardo",
+  senderName,
+  isTransferComplete,
   onComplete,
 }: TransferProcessingScreenProps) {
   const [phase, setPhase] = useState<Phase>("init");
@@ -42,10 +44,16 @@ export function TransferProcessingScreen({
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("routing"), 350);
     const t2 = setTimeout(() => setPhase("pending"), 1900);
-    const t3 = setTimeout(() => setPhase("completed"), 3400);
-    const t4 = setTimeout(() => stableOnComplete(), 5200);
-    return () => [t1, t2, t3, t4].forEach(clearTimeout);
-  }, [stableOnComplete]);
+    return () => [t1, t2].forEach(clearTimeout);
+  }, []);
+
+  useEffect(() => {
+    if (phase === "pending" && isTransferComplete) {
+      const t3 = setTimeout(() => setPhase("completed"), 600);
+      const t4 = setTimeout(() => stableOnComplete(), 2200);
+      return () => [t3, t4].forEach(clearTimeout);
+    }
+  }, [phase, isTransferComplete, stableOnComplete]);
 
   const senderInitial = senderName[0]?.toUpperCase() ?? "E";
   const recipientInitial = recipientName[0]?.toUpperCase() ?? "?";

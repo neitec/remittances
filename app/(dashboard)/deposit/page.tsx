@@ -286,89 +286,20 @@ export default function DepositPage() {
                 </div>
               </motion.button>
 
-              {/* Coming soon section — Multiple currencies */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h2 className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)]">
-                    Próximamente — Soporte a más divisas
-                  </h2>
-                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70">
-                    Expandimos el soporte a múltiples divisas en 2026
-                  </p>
-                </div>
-
-                <div className="flex gap-2 overflow-x-auto pb-2">
+              {/* Coming soon section — Simple list */}
+              <div className="space-y-3">
+                <h2 className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)]">
+                  Próximamente
+                </h2>
+                <div className="space-y-2">
                   {[
-                    { code: "USD", name: "Dólares", color: "#003ec7" },
-                    { code: "DOP", name: "Pesos RD", color: "#bc4800" },
-                    { code: "COP", name: "Pesos CO", color: "#0d9488" },
-                    { code: "MXN", name: "Pesos MX", color: "#7c3aed" },
-                  ].map((currency) => (
-                    <motion.button
-                      key={currency.code}
-                      onClick={() => toast.info(`Depósitos en ${currency.name} estarán disponibles muy pronto`)}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.97 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex-shrink-0 flex flex-col items-center gap-2 px-4 py-3 rounded-[14px] border border-dashed transition-all cursor-not-allowed group"
-                      style={{
-                        borderColor: `${currency.color}40`,
-                        background: `${currency.color}08`,
-                      }}
-                    >
-                      <p className="font-manrope font-semibold text-[13px] text-[var(--color-on-surface)]">{currency.code}</p>
-                      <p className="text-[11px] text-[var(--color-on-surface-variant)]/60">{currency.name}</p>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Coming soon section — Alternative deposit methods */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h2 className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)]">
-                    Próximamente — Métodos alternativos
-                  </h2>
-                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70">
-                    Nuevas formas de recibir dinero en tu wallet
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { icon: "alternate_email", label: "Vía Alias", sub: "Recibe de otros usuarios.", bg: "#f0f3fa", color: "#003ec7" },
-                    { icon: "qr_code_scanner", label: "Escaneo QR", sub: "Transferencia inmediata.", bg: "#e8efff", color: "#0052ff" },
+                    { icon: "alternate_email", label: "Vía Alias" },
+                    { icon: "qr_code_scanner", label: "Escaneo QR" },
                   ].map((item) => (
-                    <motion.button
-                      key={item.label}
-                      onClick={() => toast.info(`${item.label} estará disponible muy pronto`)}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.97 }}
-                      transition={{ duration: 0.2 }}
-                      className="p-4 rounded-[20px] text-left border border-dashed transition-all cursor-not-allowed"
-                      style={{
-                        background: item.bg,
-                        borderColor: `${item.color}30`,
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-[12px] flex items-center justify-center mb-2.5 flex-shrink-0"
-                        style={{
-                          background: "rgba(255,255,255,0.90)",
-                          boxShadow: "0 2px 8px rgba(0,62,199,0.12)",
-                        }}
-                      >
-                        <Icon name={item.icon} size={20} className="text-[var(--color-primary)]" />
-                      </div>
-                      <p className="font-manrope font-semibold text-sm text-[var(--color-on-surface)] mb-0.5">{item.label}</p>
-                      <p className="text-xs font-inter text-[var(--color-on-surface-variant)]/70">{item.sub}</p>
-                      <div className="mt-2.5 pt-2.5 flex items-center justify-between border-t" style={{ borderColor: `${item.color}15` }}>
-                        <span className="text-[9px] font-inter font-bold uppercase tracking-[0.08em] text-[var(--color-on-surface-variant)]/50">
-                          Próximamente
-                        </span>
-                        <Icon name="lock" size={12} className="text-[var(--color-on-surface-variant)]/40" />
-                      </div>
-                    </motion.button>
+                    <div key={item.label} className="flex items-center gap-3 px-4 py-3 rounded-[14px]" style={{ background: "rgba(0,62,199,0.04)" }}>
+                      <Icon name={item.icon} size={18} className="text-[var(--color-primary)]/60 flex-shrink-0" />
+                      <p className="font-inter text-[13px] text-[var(--color-on-surface-variant)]/70">{item.label}</p>
+                    </div>
                   ))}
                 </div>
               </div>
