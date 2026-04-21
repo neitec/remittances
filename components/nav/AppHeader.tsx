@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useMe } from "@/lib/hooks/queries/useMe";
 import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "next/navigation";
 
@@ -11,9 +12,19 @@ interface AppHeaderProps {
 
 export function AppHeader({ onBack, showBack }: AppHeaderProps) {
   const { user } = useAuth();
+  const { data: userData } = useMe();
   const router = useRouter();
 
-  const fullName = user?.name || "Usuario";
+  const getFullName = () => {
+    if (userData?.name && userData?.surname) {
+      return `${userData.name} ${userData.surname}`;
+    }
+    if (userData?.name) return userData.name;
+    if (user?.name) return user.name;
+    return "Usuario";
+  };
+
+  const fullName = getFullName();
   const userName = fullName.split(" ")[0];
   const initials = fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
