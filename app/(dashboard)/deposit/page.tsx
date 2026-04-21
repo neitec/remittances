@@ -322,6 +322,56 @@ export default function DepositPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Coming soon section — Alternative deposit methods */}
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h2 className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)]">
+                    Próximamente — Métodos alternativos
+                  </h2>
+                  <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70">
+                    Nuevas formas de recibir dinero en tu wallet
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: "alternate_email", label: "Vía Alias", sub: "Recibe de otros usuarios.", bg: "#f0f3fa", color: "#003ec7" },
+                    { icon: "qr_code_scanner", label: "Escaneo QR", sub: "Transferencia inmediata.", bg: "#e8efff", color: "#0052ff" },
+                  ].map((item) => (
+                    <motion.button
+                      key={item.label}
+                      onClick={() => toast.info(`${item.label} estará disponible muy pronto`)}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ duration: 0.2 }}
+                      className="p-4 rounded-[20px] text-left border border-dashed transition-all cursor-not-allowed"
+                      style={{
+                        background: item.bg,
+                        borderColor: `${item.color}30`,
+                      }}
+                    >
+                      <div
+                        className="w-10 h-10 rounded-[12px] flex items-center justify-center mb-2.5 flex-shrink-0"
+                        style={{
+                          background: "rgba(255,255,255,0.90)",
+                          boxShadow: "0 2px 8px rgba(0,62,199,0.12)",
+                        }}
+                      >
+                        <Icon name={item.icon} size={20} className="text-[var(--color-primary)]" />
+                      </div>
+                      <p className="font-manrope font-semibold text-sm text-[var(--color-on-surface)] mb-0.5">{item.label}</p>
+                      <p className="text-xs font-inter text-[var(--color-on-surface-variant)]/70">{item.sub}</p>
+                      <div className="mt-2.5 pt-2.5 flex items-center justify-between border-t" style={{ borderColor: `${item.color}15` }}>
+                        <span className="text-[9px] font-inter font-bold uppercase tracking-[0.08em] text-[var(--color-on-surface-variant)]/50">
+                          Próximamente
+                        </span>
+                        <Icon name="lock" size={12} className="text-[var(--color-on-surface-variant)]/40" />
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
 
