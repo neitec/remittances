@@ -12,7 +12,7 @@ function getRedirectUri(): string {
   if (typeof window === 'undefined') {
     return process.env.NEXT_PUBLIC_AUTH0_REDIRECT_URI || '';
   }
-  return `${window.location.origin}/api/auth/callback`;
+  return window.location.origin;
 }
 
 function Auth0Wrapper({ children }: { children: ReactNode }) {
