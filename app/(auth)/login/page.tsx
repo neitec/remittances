@@ -7,6 +7,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
+import { usePasswordlessOTP } from "@/lib/hooks/useEmailPasswordLogin";
 
 const container = {
   hidden: { opacity: 0 },
@@ -27,28 +28,49 @@ const item = {
 export default function LoginPage() {
   const router = useRouter();
   const { loginWithRedirect } = useAuth0();
+  const { sendOTP, verifyOTP } = usePasswordlessOTP();
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
-  // Auth0 email/password login
-  const handleAuth0EmailLogin = async (e: React.FormEvent) => {
+  // Send OTP
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      await loginWithRedirect({
-        appState: { returnTo: "/dashboard" },
-        ...(email && {
-          authorizationParams: {
-            login_hint: email,
-            screen_hint: "login",
-          },
-        }),
-      });
+      if (!email) {
+        setError("Por favor ingresa tu email");
+        setIsLoading(false);
+        return;
+      }
+      await sendOTP(email);
+      setOtpSent(true);
+      toast.success("Código enviado a tu email");
     } catch (err) {
-      setError("Error al conectar con Auth0");
+      setError(err instanceof Error ? err.message : "Error al enviar código");
+      setIsLoading(false);
+    }
+  };
+
+  // Verify OTP and login
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      if (!otp) {
+        setError("Por favor ingresa el código");
+        setIsLoading(false);
+        return;
+      }
+      await verifyOTP(email, otp);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Código inválido");
       setIsLoading(false);
     }
   };
@@ -218,52 +240,116 @@ export default function LoginPage() {
                   </AnimatePresence>
 
                   <motion.form
-                    onSubmit={handleAuth0EmailLogin}
+                    onSubmit={otpSent ? handleVerifyOTP : handleSendOTP}
                     className="space-y-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                   >
-                    {/* Email Input */}
-                    <div className="space-y-3">
-                      <label
-                        htmlFor="auth0Email"
-                        className="text-[var(--color-on-surface)] font-inter font-bold text-sm"
-                      >
-                        Correo electrónico
-                      </label>
-                      <input
-                        id="auth0Email"
-                        type="email"
-                        placeholder="correo@ejemplo.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={isLoading}
-                        className="w-full px-4 py-3 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-inter focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50"
-                      />
-                    </div>
+                    {!otpSent ? (
+                      <>
+                        {/* Email Input - Step 1 */}
+                        <div className="space-y-3">
+                          <label
+                            htmlFor="auth0Email"
+                            className="text-[var(--color-on-surface)] font-inter font-bold text-sm"
+                          >
+                            Correo electrónico
+                          </label>
+                          <input
+                            id="auth0Email"
+                            type="email"
+                            placeholder="correo@ejemplo.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={isLoading}
+                            className="w-full px-4 py-3 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-inter focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50"
+                          />
+                        </div>
 
-                    {/* Continue Button */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.5 }}
-                    >
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-[var(--color-primary)] hover:opacity-90 text-white font-manrope font-bold py-3 rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Icon name="hourglass_empty" size={18} className="animate-spin" />
-                            <span>Conectando...</span>
-                          </>
-                        ) : (
-                          "Continuar"
-                        )}
-                      </button>
-                    </motion.div>
+                        {/* Send Code Button */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.5 }}
+                        >
+                          <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full bg-[var(--color-primary)] hover:opacity-90 text-white font-manrope font-bold py-3 rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                          >
+                            {isLoading ? (
+                              <>
+                                <Icon name="hourglass_empty" size={18} className="animate-spin" />
+                                <span>Enviando código...</span>
+                              </>
+                            ) : (
+                              "Enviar código"
+                            )}
+                          </button>
+                        </motion.div>
+                      </>
+                    ) : (
+                      <>
+                        {/* OTP Input - Step 2 */}
+                        <div className="space-y-3">
+                          <label
+                            htmlFor="otp"
+                            className="text-[var(--color-on-surface)] font-inter font-bold text-sm"
+                          >
+                            Código de verificación
+                          </label>
+                          <p className="text-[12px] text-[var(--color-on-surface-variant)]/60 font-inter">
+                            Hemos enviado un código a <strong>{email}</strong>
+                          </p>
+                          <input
+                            id="otp"
+                            type="text"
+                            placeholder="000000"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            disabled={isLoading}
+                            maxLength={6}
+                            className="w-full px-4 py-3 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-inter text-center text-2xl tracking-widest focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/50"
+                          />
+                        </div>
+
+                        {/* Verify Button */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.5 }}
+                        >
+                          <button
+                            type="submit"
+                            disabled={isLoading || otp.length < 6}
+                            className="w-full bg-[var(--color-primary)] hover:opacity-90 text-white font-manrope font-bold py-3 rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                          >
+                            {isLoading ? (
+                              <>
+                                <Icon name="hourglass_empty" size={18} className="animate-spin" />
+                                <span>Verificando...</span>
+                              </>
+                            ) : (
+                              "Verificar"
+                            )}
+                          </button>
+                        </motion.div>
+
+                        {/* Back Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setOtp("");
+                          }}
+                          disabled={isLoading}
+                          className="w-full text-[var(--color-primary)] font-inter font-semibold text-sm hover:opacity-70 transition-opacity"
+                        >
+                          Usar otro email
+                        </button>
+                      </>
+                    )}
                   </motion.form>
 
                   {/* Divider */}
