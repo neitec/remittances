@@ -8,7 +8,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { useBeneficiary } from "@/lib/hooks/mutations/useBeneficiary";
 import { useSendMoney } from "@/lib/hooks/mutations/useSendMoney";
 import { useExternalAccounts } from "@/lib/hooks/queries/useExternalAccounts";
-import { SuccessAnimation } from "@/components/motion/SuccessAnimation";
+import { useMe } from "@/lib/hooks/queries/useMe";
 import { ExternalAccountSelector } from "@/components/features/ExternalAccountSelector";
 import { toast } from "sonner";
 import { useAccounts } from "@/lib/hooks/queries/useAccounts";
@@ -32,7 +32,9 @@ export default function SendPage() {
   const { data: dashboardData, isLoading: isAccountsLoading } = useAccounts();
   const { data: externalAccounts } = useExternalAccounts();
   const { data: transactionsData } = useTransactions({ type: "TRANSFER" });
+  const { data: me } = useMe();
   const [step, setStep] = useState<Step>(1);
+  const [transferComplete, setTransferComplete] = useState(false);
   const [sendMode, setSendMode] = useState<SendMode>("user");
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>("");
   const [selectedAccountData, setSelectedAccountData] = useState<ExternalAccount | null>(null);
@@ -53,6 +55,7 @@ export default function SendPage() {
   const hasBalance = totalBalance > 0;
   const step3Unlocked =
     sendMode === "user" ? !!beneficiary : !!selectedAccountData;
+  const senderName = [me?.name, me?.surname].filter(Boolean).join(" ") || "Usuario";
 
   const QUICK_AMOUNTS = [50, 100, 200, 500];
 
@@ -122,7 +125,7 @@ export default function SendPage() {
         {
           onSuccess: () => {
             console.log("[Transfer] Success");
-            setStep("success");
+            setTransferComplete(true);
             setSubmitted(false);
           },
           onError: (err) => {
@@ -155,7 +158,7 @@ export default function SendPage() {
         {
           onSuccess: () => {
             console.log("[Transfer] Success");
-            setStep("success");
+            setTransferComplete(true);
             setSubmitted(false);
           },
           onError: (err) => {
@@ -173,13 +176,6 @@ export default function SendPage() {
       setSubmitted(false);
     }
   };
-
-  useEffect(() => {
-    if (step === "success") {
-      const timer = setTimeout(() => router.push("/dashboard"), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [step, router]);
 
   if (isAccountsLoading) {
     return (
@@ -312,7 +308,7 @@ export default function SendPage() {
 
               {/* TR1: Internal — Remita user (same style as EUR deposit card) */}
               <motion.button
-                onClick={() => { setSendMode("user"); setStep(2); setPhone(""); setAmount(""); }}
+                onClick={() => { setSendMode("user"); setStep(2); setPhone(""); setAmount(""); setTransferComplete(false); }}
                 initial="rest"
                 whileHover="hover"
                 whileTap={{ scale: 0.99 }}
@@ -1016,8 +1012,9 @@ export default function SendPage() {
               amount={parseFloat(amount.replace(",", ".")) || 0}
               recipientName={beneficiary?.name || phone}
               recipientIdentifier={alias ? `@${alias}` : `${countryCode} ${phone}`}
-              senderName="Eduardo"
-              onComplete={() => router.push("/transactions")}
+              senderName={senderName}
+              isTransferComplete={transferComplete}
+              onComplete={() => router.push("/dashboard")}
             />
           )}
 
@@ -1095,57 +1092,6 @@ export default function SendPage() {
             </motion.div>
           )}
 
-          {/* Success state */}
-          {step === "success" && (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center space-y-6 py-12"
-            >
-              <SuccessAnimation show={true} />
-
-              <div className="space-y-3">
-                <h2 className="text-3xl font-manrope font-bold text-[var(--color-on-surface)]">
-                  ¡Enviado!
-                </h2>
-                <p className="text-lg font-manrope font-bold text-[var(--color-primary)]">
-                  {formatCurrency(parseFloat(amount || "0"))}
-                </p>
-                <p className="text-sm text-[var(--color-on-surface-variant)] font-inter">
-                  {sendMode === "user" && beneficiary
-                    ? `${beneficiary.name} recibirá el dinero al instante.`
-                    : `El dinero llegará en 2-3 días hábiles.`}
-                </p>
-              </div>
-
-              <div className="space-y-3 pt-4">
-                <button
-                  onClick={() => router.push("/dashboard")}
-                  className="w-full px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-manrope font-bold transition-all hover:opacity-90"
-                >
-                  Volver al inicio
-                </button>
-
-                <button
-                  onClick={() => {
-                    setStep(1);
-                    setPhone("");
-                    setAmount("");
-                    setMessage("");
-                    setSelectedBankAccount("");
-                    setSelectedAccountData(null);
-                    setSubmitted(false);
-                  }}
-                  className="w-full px-6 py-3 rounded-xl border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] font-manrope font-bold transition-all hover:bg-[var(--color-surface-container-low)]"
-                >
-                  {sendMode === "user"
-                    ? "Enviar a otro contacto"
-                    : "Enviar a otra cuenta"}
-                </button>
-              </div>
-            </motion.div>
-          )}
         </AnimatePresence>
         </div>
       </main>
