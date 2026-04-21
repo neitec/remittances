@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useTransactions } from "@/lib/hooks/queries/useTransactions";
+import { useMe } from "@/lib/hooks/queries/useMe";
 import { TransactionType } from "@/lib/api";
-import { formatCurrency, formatDate, formatRelativeDate } from "@/lib/format";
+import { formatCurrency, formatRelativeDate } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import { StaggerChildren, MotionItem } from "@/components/motion/StaggerChildren";
 import { TransactionsSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
 import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/nav/AppHeader";
+import { TransactionDetailDrawer } from "@/components/features/TransactionDetailDrawer";
 import { cn } from "@/lib/utils";
 
 type FilterType = TransactionType | "all" | "withdrawal";
@@ -23,6 +25,7 @@ const FILTER_TABS: { label: string; value: FilterType; icon: string; disabled?: 
 
 export default function TransactionsPage() {
   const searchParams = useSearchParams();
+  const { data: me } = useMe();
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [selectedTxn, setSelectedTxn] = useState<string | null>(searchParams.get("detail"));
   const [currentPage, setCurrentPage] = useState(0);
@@ -157,61 +160,82 @@ export default function TransactionsPage() {
               ) : transactions.length > 0 ? (
                 <>
                   <StaggerChildren skipAnimation={openedWithDetail.current}>
-                    {paginatedTransactions.map((txn) => (
-                      <MotionItem key={txn.id}>
-                        <motion.button
-                          onClick={() => setSelectedTxn(txn.id)}
-                          className="w-full flex items-center justify-between pl-4 pr-8 py-4 rounded-2xl bg-[var(--color-surface-container-low)]/30 hover:bg-[rgba(0,62,199,0.07)] transition-colors text-left mb-2 border-b border-[rgba(0,0,0,0.05)]"
-                          whileHover={{ x: 4 }}
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div
-                              className={`flex items-center justify-center w-10 h-10 rounded-[13px] flex-shrink-0 ${
-                                txn.type === "TRANSFER"
-                                  ? "bg-[var(--color-tertiary-fixed)] text-[var(--color-tertiary)]"
-                                  : "bg-emerald-50 text-emerald-600"
-                              }`}
-                            >
-                              <Icon
-                                name={txn.type === "TRANSFER" ? "north_east" : "south_west"}
-                                size={20}
-                              />
+                    {paginatedTransactions.map((txn) => {
+                      const isTransfer = txn.type === TransactionType.TRANSFER;
+                      const isOutgoing = isTransfer && txn.sourceAccount?.userId === me?.id;
+                      const isIncoming = isTransfer && !isOutgoing;
+
+                      const contact = isOutgoing
+                        ? txn.destinationAccount?.user?.name
+                        : isIncoming
+                          ? txn.sourceAccount?.user?.name
+                          : null;
+
+                      const label = isOutgoing
+                        ? contact
+                          ? `Enviado a ${contact}`
+                          : "Transferencia enviada"
+                        : isIncoming
+                          ? contact
+                            ? `Recibido de ${contact}`
+                            : "Transferencia recibida"
+                          : "Depósito";
+
+                      const iconName = isOutgoing ? "north_east" : "south_west";
+                      const iconBg = isOutgoing
+                        ? "bg-[var(--color-tertiary-fixed)] text-[var(--color-tertiary)]"
+                        : "bg-emerald-50 text-emerald-600";
+
+                      const amountSign = isOutgoing ? "−" : "+";
+                      const amountColor = isOutgoing
+                        ? "text-[var(--color-on-surface)]"
+                        : "text-[var(--color-primary)]";
+
+                      return (
+                        <MotionItem key={txn.id}>
+                          <motion.button
+                            onClick={() => setSelectedTxn(txn.id)}
+                            className="w-full flex items-center justify-between pl-4 pr-8 py-4 rounded-2xl bg-[var(--color-surface-container-low)]/30 hover:bg-[rgba(0,62,199,0.07)] transition-colors text-left mb-2 border-b border-[rgba(0,0,0,0.05)]"
+                            whileHover={{ x: 4 }}
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div
+                                className={`flex items-center justify-center w-10 h-10 rounded-[13px] flex-shrink-0 ${iconBg}`}
+                              >
+                                <Icon name={iconName} size={20} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm truncate">
+                                  {label}
+                                </p>
+                                <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">
+                                  {formatRelativeDate(txn.createdAt)}
+                                </p>
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm truncate">
-                                {txn.type === "TRANSFER" ? "Transferencia" : txn.type === "DEPOSIT" ? "Depósito" : "Transacción"}
+                            <div className="text-right flex-shrink-0">
+                              <p
+                                className={`font-manrope font-bold text-sm tabular ${amountColor}`}
+                              >
+                                {amountSign}
+                                {formatCurrency(parseFloat(txn.amount))}
                               </p>
-                              <p className="text-xs text-[var(--color-on-surface-variant)]/70 font-inter">
-                                {formatRelativeDate(txn.createdAt)}
+                              <p className="text-xs text-[var(--color-on-surface-variant)]/60 font-inter flex items-center justify-end gap-1 mt-1">
+                                {txn.status === "COMPLETED" ? (
+                                  <>
+                                    <Icon name="check_circle" size={14} className="text-[var(--color-success-text)]" filled />
+                                  </>
+                                ) : (
+                                  <>
+                                    <Icon name="schedule" size={14} className="text-[var(--color-warning)]" />
+                                  </>
+                                )}
                               </p>
                             </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p
-                              className={`font-manrope font-bold text-sm tabular ${
-                                txn.type === "TRANSFER"
-                                  ? "text-[var(--color-on-surface)]"
-                                  : "text-[var(--color-primary)]"
-                              }`}
-                            >
-                              {txn.type === "TRANSFER" ? "−" : "+"}
-                              {formatCurrency(parseFloat(txn.amount))}
-                            </p>
-                            <p className="text-xs text-[var(--color-on-surface-variant)]/60 font-inter flex items-center justify-end gap-1 mt-1">
-                              {txn.status === "COMPLETED" ? (
-                                <>
-                                  <Icon name="check_circle" size={14} className="text-[var(--color-success-text)]" filled />
-                                </>
-                              ) : (
-                                <>
-                                  <Icon name="schedule" size={14} className="text-[var(--color-warning)]" />
-                                </>
-                              )}
-                            </p>
-                          </div>
-                        </motion.button>
-                      </MotionItem>
-                    ))}
+                          </motion.button>
+                        </MotionItem>
+                      );
+                    })}
                   </StaggerChildren>
 
                   {shouldShowLoadMore && (
@@ -251,135 +275,8 @@ export default function TransactionsPage() {
           )}
         </div>
 
-        {/* Transaction Detail Modal */}
-        <AnimatePresence>
-          {detailTxn && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSelectedTxn(null)}
-                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
-              />
-
-              {/* Modal - Drawer from right */}
-              <motion.div
-                initial={{ opacity: 0, x: 400 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 400 }}
-                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="fixed top-0 right-0 bottom-0 w-full sm:w-[calc(100%-3rem)] md:w-96 bg-[var(--color-background)] z-50 overflow-y-auto shadow-xl pb-safe"
-              >
-                <div className="sticky top-0 bg-[var(--color-background)] z-10 flex items-center justify-between p-6 border-b border-[var(--color-outline-variant)]/10">
-                  <h3 className="text-xl font-manrope font-bold text-[var(--color-on-surface)]">
-                    Detalles
-                  </h3>
-                  <motion.button
-                    onClick={() => setSelectedTxn(null)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors"
-                  >
-                    <Icon name="close" size={24} />
-                  </motion.button>
-                </div>
-
-                <div className="p-6 space-y-4">
-                  {/* Monto Principal */}
-                  <div className={`border rounded-2xl p-6 text-center ${
-                    detailTxn.type === "TRANSFER"
-                      ? "bg-[var(--color-error-fixed)] border-[var(--color-error)]/20"
-                      : "bg-[var(--color-success-fixed)] border-[var(--color-success)]/20"
-                  }`}>
-                    <p className="text-xs text-[var(--color-on-surface-variant)] mb-2 font-inter font-bold uppercase tracking-widest">Cantidad</p>
-                    <p className={`text-4xl font-manrope font-extrabold ${
-                      detailTxn.type === "TRANSFER"
-                        ? "text-[var(--color-error)]"
-                        : "text-[var(--color-success)]"
-                    }`}>
-                      {detailTxn.type === "TRANSFER" ? "-" : "+"}
-                      {formatCurrency(parseFloat(detailTxn.amount))}
-                    </p>
-                    <p className="text-xs text-[var(--color-on-surface)] mt-2 font-inter font-bold">
-                      {detailTxn.type === "TRANSFER" ? "Enviado" : "Depositado"}
-                    </p>
-                  </div>
-
-                  {/* Tipo & Estado */}
-                  <div className="flex gap-3">
-                    <div className="flex-1 bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10">
-                      <p className="text-xs text-[var(--color-on-surface-variant)] mb-1 font-inter font-bold uppercase tracking-widest">Tipo</p>
-                      <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">
-                        {detailTxn.type === "TRANSFER" ? "Transferencia" : "Depósito"}
-                      </p>
-                    </div>
-                    <div className="flex-1 bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10">
-                      <p className="text-xs text-[var(--color-on-surface-variant)] mb-1 font-inter font-bold uppercase tracking-widest">Estado</p>
-                      <div className="flex items-center gap-1">
-                        {detailTxn.status === "COMPLETED" ? (
-                          <>
-                            <Icon name="check_circle" size={16} className="text-[var(--color-success-text)]" filled />
-                            <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">Completado</p>
-                          </>
-                        ) : (
-                          <>
-                            <Icon name="schedule" size={16} className="text-[var(--color-warning)]" />
-                            <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">Pendiente</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contacto */}
-                  <div className="bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center">
-                        <Icon name="person" size={20} className="text-[var(--color-primary)]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-0.5">
-                          {detailTxn.type === "TRANSFER" ? "Enviado a" : "Origen de"}
-                        </p>
-                        <p className="font-manrope font-bold text-[var(--color-on-surface)] truncate">
-                          {detailTxn.type === "TRANSFER"
-                            ? "Transferencia enviada"
-                            : (detailTxn.externalAccount?.bankName ?? "Depósito SEPA")}
-                        </p>
-                        {detailTxn.type === "DEPOSIT" && detailTxn.externalAccount?.accountNumber && (
-                          <p className="text-xs text-[var(--color-on-surface-variant)] mt-0.5 truncate">
-                            {detailTxn.externalAccount.accountNumber}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Fecha de envío */}
-                  <div className="bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10 flex items-start gap-3">
-                    <Icon name="calendar_today" size={20} className="text-[var(--color-on-surface-variant)] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-0.5">Fecha de envío</p>
-                      <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">{formatDate(detailTxn.createdAt)}</p>
-                    </div>
-                  </div>
-
-                </div>
-
-                <div className="sticky bottom-0 bg-[var(--color-background)] border-t border-[var(--color-outline-variant)]/10 p-6">
-                  <button
-                    onClick={() => setSelectedTxn(null)}
-                    className="w-full px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-manrope font-bold transition-all hover:opacity-90"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {/* Transaction Detail Drawer */}
+        <TransactionDetailDrawer transaction={detailTxn || null} onClose={() => setSelectedTxn(null)} />
         </div>
       </motion.div>
     </div>

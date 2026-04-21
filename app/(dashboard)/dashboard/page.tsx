@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAccounts } from "@/lib/hooks/queries/useAccounts";
+import { useMe } from "@/lib/hooks/queries/useMe";
 import { DashboardSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
 import { formatRelativeDate } from "@/lib/format";
 import { useTransactions } from "@/lib/hooks/queries/useTransactions";
@@ -20,6 +21,7 @@ const fadeUp = (delay = 0) => ({
 export default function DashboardPage() {
   const { data: dashboardData, isLoading } = useAccounts();
   const { data: transactionsData } = useTransactions();
+  const { data: me } = useMe();
 
   if (isLoading) {
     return (
@@ -256,7 +258,19 @@ export default function DashboardPage() {
                 <div>
                   {lastTransactions.map((txn, idx) => {
                     const isDeposit = txn.type === "DEPOSIT";
+                    const isTransfer = txn.type === "TRANSFER";
+                    const isOutgoing = isTransfer && txn.sourceAccount?.userId === me?.id;
                     const isCompleted = txn.status === "COMPLETED";
+
+                    const iconName = isOutgoing ? "north_east" : "south_west";
+                    const iconBg = isOutgoing
+                      ? "bg-[var(--color-tertiary-fixed)] text-[var(--color-tertiary)]"
+                      : "bg-emerald-50 text-emerald-600";
+
+                    const amountSign = isOutgoing ? "−" : "+";
+                    const amountColor = isOutgoing
+                      ? "text-[var(--color-on-surface)]"
+                      : "text-[var(--color-primary)]";
 
                     return (
                       <motion.div
@@ -280,18 +294,8 @@ export default function DashboardPage() {
                           >
                             {/* Type icon with status badge */}
                             <div className="relative flex-shrink-0">
-                              <div
-                                className={cn(
-                                  "w-10 h-10 rounded-[13px] flex items-center justify-center",
-                                  isDeposit
-                                    ? "bg-emerald-50 text-emerald-600"
-                                    : "bg-[var(--color-tertiary-fixed)] text-[var(--color-tertiary)]"
-                                )}
-                              >
-                                <Icon
-                                  name={isDeposit ? "south_west" : "north_east"}
-                                  size={18}
-                                />
+                              <div className={cn("w-10 h-10 rounded-[13px] flex items-center justify-center", iconBg)}>
+                                <Icon name={iconName} size={18} />
                               </div>
                               <span
                                 className={cn(
@@ -305,7 +309,11 @@ export default function DashboardPage() {
                             {/* Label + date */}
                             <div className="flex-1 min-w-0">
                               <p className="font-manrope font-semibold text-[var(--color-on-surface)] text-[13px] leading-tight">
-                                {isDeposit ? "Depósito SEPA" : "Transferencia"}
+                                {isDeposit
+                                  ? "Depósito SEPA"
+                                  : isOutgoing
+                                    ? "Transferencia enviada"
+                                    : "Transferencia recibida"}
                               </p>
                               <p className="text-[11px] text-[var(--color-on-surface-variant)]/50 font-inter mt-0.5">
                                 {formatRelativeDate(txn.createdAt)}
@@ -317,12 +325,10 @@ export default function DashboardPage() {
                               <p
                                 className={cn(
                                   "font-manrope font-bold text-[13px] tabular leading-tight",
-                                  isDeposit
-                                    ? "text-[var(--color-primary)]"
-                                    : "text-[var(--color-on-surface)]"
+                                  amountColor
                                 )}
                               >
-                                {isDeposit ? "+" : "−"}
+                                {amountSign}
                                 {parseFloat(txn.amount).toLocaleString("de-DE", {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,

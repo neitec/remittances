@@ -5,6 +5,7 @@ export interface Account {
   currency: string;
   balance: string;
   userId: string;
+  user?: User | null;
 }
 
 export interface DashboardData {
