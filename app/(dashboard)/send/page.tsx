@@ -725,18 +725,8 @@ export default function SendPage() {
                     )}
                   </AnimatePresence>
 
-                  {/* ── Slide CTA ── */}
-                  <div className="mt-8 space-y-3">
-                  <SlideToAction
-                    onConfirm={handleSendConfirm}
-                    label="DESLIZA PARA TRANSFERIR"
-                    disabled={
-                      !phone || phone.length < 9 || !beneficiary ||
-                      !amount || parseFloat(amount.replace(",", ".")) <= 0 ||
-                      parseFloat(amount.replace(",", ".")) > totalBalance
-                    }
-                    loading={isSending}
-                  />
+                  {/* ── Transfer CTA ── */}
+                  <div className="mt-8">
                   <button
                     onClick={handleSendConfirm}
                     disabled={
@@ -745,9 +735,13 @@ export default function SendPage() {
                       parseFloat(amount.replace(",", ".")) > totalBalance ||
                       isSending
                     }
-                    className="w-full px-6 py-3 rounded-xl bg-[var(--color-success-bg)] text-[var(--color-success-text)] font-manrope font-bold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
+                    className="w-full h-[64px] rounded-full font-inter font-bold text-[10.5px] uppercase tracking-[0.24em] text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-45 disabled:pointer-events-none flex items-center justify-center gap-2"
+                    style={{
+                      background: "linear-gradient(145deg, #d05200 0%, #e06000 55%, #bc4800 100%)",
+                      boxShadow: "0 5px 18px rgba(188,72,0,0.50), 0 2px 5px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.22)",
+                    }}
                   >
-                    {isSending ? "Procesando..." : "Enviar (Prueba)"}
+                    {isSending ? "Procesando..." : "TRANSFERIR FONDOS"}
                   </button>
                   </div>
                 </div>
