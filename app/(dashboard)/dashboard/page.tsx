@@ -259,7 +259,7 @@ export default function DashboardPage() {
                   {lastTransactions.map((txn, idx) => {
                     const isDeposit = txn.type === "DEPOSIT";
                     const isTransfer = txn.type === "TRANSFER";
-                    const isOutgoing = isTransfer && txn.sourceAccount?.userId === me?.id;
+                    const isOutgoing = isTransfer && me && txn.sourceAccount?.userId === me.id;
                     const isCompleted = txn.status === "COMPLETED";
 
                     const iconName = isOutgoing ? "north_east" : "south_west";

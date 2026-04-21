@@ -12,11 +12,13 @@ interface TransactionDetailDrawerProps {
   onClose: () => void;
 }
 
-function getInitials(name: string, surname: string): string {
+function getInitials(name?: string, surname?: string): string {
+  if (!name || !surname) return "??";
   return `${name[0]}${surname[0]}`.toUpperCase();
 }
 
-function getCountryEmoji(country: string): string {
+function getCountryEmoji(country?: string): string {
+  if (!country || country.length !== 2) return "🌍";
   const codePoints = country
     .toUpperCase()
     .split("")
@@ -34,7 +36,7 @@ export function TransactionDetailDrawer({
   if (!txn) return null;
 
   const isTransfer = txn.type === TransactionType.TRANSFER;
-  const isOutgoing = isTransfer && txn.sourceAccount?.userId === me?.id;
+  const isOutgoing = isTransfer && me && txn.sourceAccount?.userId === me.id;
   const isIncoming = isTransfer && !isOutgoing;
   const isDeposit = txn.type === TransactionType.DEPOSIT;
 

@@ -162,7 +162,7 @@ export default function TransactionsPage() {
                   <StaggerChildren skipAnimation={openedWithDetail.current}>
                     {paginatedTransactions.map((txn) => {
                       const isTransfer = txn.type === TransactionType.TRANSFER;
-                      const isOutgoing = isTransfer && txn.sourceAccount?.userId === me?.id;
+                      const isOutgoing = isTransfer && me && txn.sourceAccount?.userId === me.id;
                       const isIncoming = isTransfer && !isOutgoing;
 
                       const contact = isOutgoing
