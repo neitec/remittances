@@ -573,20 +573,17 @@ export default function SendPage() {
                         <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.08)" }} />
                       </div>
                       <div
-                        className={`flex items-center gap-2.5 h-10 px-3.5 rounded-[12px] border transition-colors ${
-                          activeField === "phone" ? "opacity-40 pointer-events-none border-[rgba(0,0,0,0.05)]" : "border-[rgba(0,0,0,0.09)]"
-                        }`}
+                        className="flex items-center gap-2.5 h-10 px-3.5 rounded-[12px] border opacity-50 pointer-events-none border-[rgba(0,0,0,0.05)]"
                         style={{ background: "var(--color-surface-container-lowest)" }}
                       >
-                        <span className={`font-manrope font-bold text-[15px] leading-none ${activeField === "phone" ? "text-[var(--color-on-surface-variant)]/35" : "text-[var(--color-primary)]"}`}>@</span>
+                        <span className="font-manrope font-bold text-[15px] leading-none text-[var(--color-on-surface-variant)]/35">@</span>
                         <input
                           type="text"
                           placeholder="Alias de Remita"
-                          value={alias}
-                          onChange={(e) => handleAliasChange(e.target.value)}
-                          disabled={isSearching || activeField === "phone"}
+                          disabled
                           className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter text-[13px] outline-none placeholder:text-[var(--color-on-surface-variant)]/35"
                         />
+                        <span className="text-[9px] font-inter font-bold uppercase tracking-[0.1em] px-2 py-1 rounded-full" style={{ background: "rgba(188,72,0,0.12)", color: "#bc4800" }}>Pronto</span>
                       </div>
                       <AnimatePresence>
                         {beneficiary && !beneficiaryError && sendMode === "user" && step === 2 && (

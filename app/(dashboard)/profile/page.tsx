@@ -208,54 +208,16 @@ export default function ProfilePage() {
                 </span>
               </div>
 
-              {/* Phone row */}
-              <AnimatePresence mode="wait">
-                {editField === "phone" ? (
-                  <motion.div
-                    key="edit-phone"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="px-5 py-4 space-y-3"
-                  >
-                    <p className="font-inter text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-on-surface-variant)]/40">Teléfono</p>
-                    <input
-                      autoFocus
-                      type="tel"
-                      value={draftValue}
-                      onChange={(e) => setDraftValue(e.target.value)}
-                      className="w-full h-11 px-4 rounded-[12px] font-inter text-[13px] text-[var(--color-on-surface)] border border-[var(--color-primary)] outline-none"
-                      style={{ background: "rgba(0,62,199,0.03)" }}
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={saveEdit}
-                        className="flex-1 h-10 rounded-[12px] bg-[var(--color-primary)] text-white font-inter font-bold text-[12px]"
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        onClick={() => setEditField(null)}
-                        className="flex-1 h-10 rounded-[12px] font-inter font-bold text-[12px] text-[var(--color-on-surface-variant)]"
-                        style={{ background: "rgba(0,0,0,0.05)" }}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="view-phone" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    <InfoRow
-                      icon="phone"
-                      label="Teléfono"
-                      value={phoneValue}
-                      placeholder="Añade tu número de teléfono"
-                      onEdit={() => openEdit("phone")}
-                      accent
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Phone row - read only */}
+              <div>
+                <InfoRow
+                  icon="phone"
+                  label="Teléfono"
+                  value={phoneValue}
+                  placeholder="Añade tu número de teléfono"
+                  accent
+                />
+              </div>
 
               <div className="mx-5 h-px" style={{ background: "rgba(0,0,0,0.05)" }} />
 

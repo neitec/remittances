@@ -357,24 +357,13 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  {/* Fechas */}
-                  <div className="space-y-3">
-                    <div className="bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10 flex items-start gap-3">
-                      <Icon name="calendar_today" size={20} className="text-[var(--color-on-surface-variant)] flex-shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-0.5">Fecha de envío</p>
-                        <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">{formatDate(detailTxn.createdAt)}</p>
-                      </div>
+                  {/* Fecha de envío */}
+                  <div className="bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10 flex items-start gap-3">
+                    <Icon name="calendar_today" size={20} className="text-[var(--color-on-surface-variant)] flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-0.5">Fecha de envío</p>
+                      <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">{formatDate(detailTxn.createdAt)}</p>
                     </div>
-                    {detailTxn.status === "COMPLETED" && (
-                      <div className="bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10 flex items-start gap-3">
-                        <Icon name="check_circle" size={20} className="text-[var(--color-success)] flex-shrink-0 mt-0.5" filled />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-[var(--color-on-surface-variant)] font-inter font-bold uppercase tracking-widest mb-0.5">Estado</p>
-                          <p className="font-manrope font-bold text-[var(--color-on-surface)] text-sm">Completado</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                 </div>

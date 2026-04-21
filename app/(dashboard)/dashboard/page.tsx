@@ -18,7 +18,7 @@ const fadeUp = (delay = 0) => ({
 });
 
 export default function DashboardPage() {
-  const { data: dashboardData, isLoading, isError } = useAccounts();
+  const { data: dashboardData, isLoading } = useAccounts();
   const { data: transactionsData } = useTransactions();
 
   if (isLoading) {
@@ -26,16 +26,6 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-[var(--color-background)]">
         <AppHeader />
         <DashboardSkeleton />
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="pt-24 px-6">
-        <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)] text-[var(--color-error)] rounded-2xl p-6">
-          <p className="font-inter text-sm">Error al cargar los datos. Por favor, intenta más tarde.</p>
-        </div>
       </div>
     );
   }
