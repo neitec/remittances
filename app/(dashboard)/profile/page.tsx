@@ -81,8 +81,14 @@ export default function ProfilePage() {
     );
   }
 
-  const displayName = user?.name ?? userData?.name ?? "Usuario";
-  const displayEmail = user?.email ?? userData?.email ?? "No disponible";
+  const buildFullName = (name?: string, surname?: string) => {
+    if (name && surname) return `${name} ${surname}`;
+    if (name) return name;
+    return "Usuario";
+  };
+
+  const displayName = buildFullName(userData?.name, userData?.surname) || user?.name || "Usuario";
+  const displayEmail = userData?.email ?? user?.email ?? "No disponible";
   const userAlias = userData?.alias ?? "";
   const phoneValue = userData?.phone ?? "";
 

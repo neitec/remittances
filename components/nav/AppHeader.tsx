@@ -13,8 +13,9 @@ export function AppHeader({ onBack, showBack }: AppHeaderProps) {
   const { user } = useAuth();
   const router = useRouter();
 
-  const userName = user?.name?.split(" ")[0] ?? "Usuario";
-  const initials = user?.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) ?? "U";
+  const fullName = user?.name || "Usuario";
+  const userName = fullName.split(" ")[0];
+  const initials = fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
   const handleBack = () => {
     if (onBack) {
