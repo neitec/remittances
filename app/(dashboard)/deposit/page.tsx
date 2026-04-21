@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useDeposit } from "@/lib/hooks/useDeposit";
+import { useDeposit } from "@/lib/hooks/mutations/useDeposit";
 import { ExternalAccountSelector } from "@/components/features/ExternalAccountSelector";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
@@ -806,7 +806,6 @@ export default function DepositPage() {
                     { label: "Nombre del banco", value: depositInstruction.bank_name, icon: "account_balance" },
                     { label: "Dirección", value: depositInstruction.bank_address, icon: "location_on" },
                     { label: "IBAN", value: depositInstruction.iban, icon: "credit_card", mono: true },
-                    { label: "BIC / SWIFT", value: depositInstruction.bic, icon: "swap_horiz", mono: true },
                     { label: "Beneficiario", value: depositInstruction.account_holder_name, icon: "person" },
                   ].map((field, idx, arr) => (
                     <button
