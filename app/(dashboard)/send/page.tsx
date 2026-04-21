@@ -60,12 +60,14 @@ export default function SendPage() {
 
   // Handle phone change - search beneficiary when phone is complete
   const handlePhoneChange = (value: string) => {
-    if (alias) return; // Alias has content, don't allow phone input
-    setPhone(value);
-    setActiveField(value ? "phone" : null);
+    if (alias) return;
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 9);
+    const formatted = digitsOnly.replace(/(\d{2})(?=\d)/g, "$1 ");
+    setPhone(digitsOnly);
+    setActiveField(digitsOnly ? "phone" : null);
     setBeneficiaryError("");
-    if (value.length === 9) {
-      const fullPhone = countryCode + value;
+    if (digitsOnly.length === 9) {
+      const fullPhone = countryCode + digitsOnly;
       searchBeneficiary(fullPhone, {
         onError: (error) => {
           const errorMsg = error instanceof Error ? error.message : "Contacto no encontrado";
@@ -523,10 +525,10 @@ export default function SendPage() {
                         <input
                           type="tel"
                           placeholder="Número de teléfono"
-                          value={phone}
+                          value={phone.replace(/(\d{2})(?=\d)/g, "$1 ")}
                           onChange={(e) => handlePhoneChange(e.target.value)}
                           disabled={isSearching || activeField === "alias"}
-                          maxLength={9}
+                          maxLength={11}
                           className={`flex-1 h-10 px-4 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/35 ${
                             activeField === "alias" ? "opacity-40 pointer-events-none border-[var(--color-outline-variant)]/30" : "border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)]"
                           }`}

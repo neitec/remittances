@@ -37,15 +37,15 @@ export function TransferProcessingScreen({
   onComplete,
 }: TransferProcessingScreenProps) {
   const [phase, setPhase] = useState<Phase>("init");
-  const stableOnComplete = useCallback(onComplete, []); // eslint-disable-line
-
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("routing"), 350);
     const t2 = setTimeout(() => setPhase("pending"), 1900);
-    const t3 = setTimeout(() => setPhase("completed"), 2600);
-    const t4 = setTimeout(() => stableOnComplete(), 3300);
-    return () => [t1, t2, t3, t4].forEach(clearTimeout);
-  }, [stableOnComplete]);
+    const t3 = setTimeout(() => {
+      setPhase("completed");
+      setTimeout(() => onComplete(), 800);
+    }, 2600);
+    return () => [t1, t2, t3].forEach(clearTimeout);
+  }, [onComplete]);
 
   const senderInitial = senderName[0]?.toUpperCase() ?? "E";
   const recipientInitial = recipientName[0]?.toUpperCase() ?? "?";
