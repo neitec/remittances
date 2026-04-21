@@ -9,7 +9,6 @@ interface TransferProcessingScreenProps {
   recipientName: string;
   recipientIdentifier: string;
   senderName: string;
-  isTransferComplete: boolean;
   onComplete: () => void;
 }
 
@@ -35,7 +34,6 @@ export function TransferProcessingScreen({
   recipientName,
   recipientIdentifier,
   senderName,
-  isTransferComplete,
   onComplete,
 }: TransferProcessingScreenProps) {
   const [phase, setPhase] = useState<Phase>("init");
@@ -44,16 +42,10 @@ export function TransferProcessingScreen({
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("routing"), 350);
     const t2 = setTimeout(() => setPhase("pending"), 1900);
-    return () => [t1, t2].forEach(clearTimeout);
-  }, []);
-
-  useEffect(() => {
-    if (phase === "pending" && isTransferComplete) {
-      const t3 = setTimeout(() => setPhase("completed"), 600);
-      const t4 = setTimeout(() => stableOnComplete(), 2200);
-      return () => [t3, t4].forEach(clearTimeout);
-    }
-  }, [phase, isTransferComplete, stableOnComplete]);
+    const t3 = setTimeout(() => setPhase("completed"), 2600);
+    const t4 = setTimeout(() => stableOnComplete(), 3300);
+    return () => [t1, t2, t3, t4].forEach(clearTimeout);
+  }, [stableOnComplete]);
 
   const senderInitial = senderName[0]?.toUpperCase() ?? "E";
   const recipientInitial = recipientName[0]?.toUpperCase() ?? "?";
@@ -390,7 +382,7 @@ export function TransferProcessingScreen({
               transition={{ delay: 0.5 }}
               className="text-white/25 font-inter text-[11px]"
             >
-              Redirigiendo a tu historial...
+              Redirigiendo al inicio...
             </motion.p>
           </motion.div>
         )}

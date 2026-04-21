@@ -34,7 +34,6 @@ export default function SendPage() {
   const { data: transactionsData } = useTransactions({ type: "TRANSFER" });
   const { data: me } = useMe();
   const [step, setStep] = useState<Step>(1);
-  const [transferComplete, setTransferComplete] = useState(false);
   const [sendMode, setSendMode] = useState<SendMode>("user");
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>("");
   const [selectedAccountData, setSelectedAccountData] = useState<ExternalAccount | null>(null);
@@ -125,7 +124,6 @@ export default function SendPage() {
         {
           onSuccess: () => {
             console.log("[Transfer] Success");
-            setTransferComplete(true);
             setSubmitted(false);
           },
           onError: (err) => {
@@ -158,7 +156,6 @@ export default function SendPage() {
         {
           onSuccess: () => {
             console.log("[Transfer] Success");
-            setTransferComplete(true);
             setSubmitted(false);
           },
           onError: (err) => {
@@ -308,7 +305,7 @@ export default function SendPage() {
 
               {/* TR1: Internal — Remita user (same style as EUR deposit card) */}
               <motion.button
-                onClick={() => { setSendMode("user"); setStep(2); setPhone(""); setAmount(""); setTransferComplete(false); }}
+                onClick={() => { setSendMode("user"); setStep(2); setPhone(""); setAmount(""); }}
                 initial="rest"
                 whileHover="hover"
                 whileTap={{ scale: 0.99 }}
@@ -1013,7 +1010,6 @@ export default function SendPage() {
               recipientName={beneficiary?.name || phone}
               recipientIdentifier={alias ? `@${alias}` : `${countryCode} ${phone}`}
               senderName={senderName}
-              isTransferComplete={transferComplete}
               onComplete={() => router.push("/dashboard")}
             />
           )}
