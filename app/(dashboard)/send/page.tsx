@@ -189,7 +189,7 @@ export default function SendPage() {
         <div className="max-w-[1088px]">
 
         {/* Persistent breadcrumb nav — stays across all steps */}
-        {hasBalance && typeof step === "number" && (
+        {typeof step === "number" && (
           <div className="pt-1 mb-5 flex items-start gap-3">
             {step === 1 ? (
               <div>
@@ -234,48 +234,8 @@ export default function SendPage() {
         )}
 
         <AnimatePresence mode="wait">
-          {/* No balance state */}
-          {!hasBalance && step === 1 && (
-            <motion.div
-              key="no-balance"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="text-center space-y-6 py-12"
-            >
-              <div className="w-20 h-20 rounded-full bg-[var(--color-error)]/10 flex items-center justify-center mx-auto">
-                <Icon
-                  name="wallet"
-                  size={40}
-                  className="text-[var(--color-error)]"
-                  filled
-                />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-manrope font-bold text-[var(--color-on-surface)]">
-                  Sin saldo disponible
-                </h2>
-                <p className="text-sm text-[var(--color-on-surface-variant)]">
-                  Añade fondos para poder enviar dinero
-                </p>
-              </div>
-              <button
-                onClick={() => router.push("/deposit")}
-                className="w-full px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-manrope font-bold transition-all hover:opacity-90 active:scale-[0.98]"
-              >
-                Depositar fondos
-              </button>
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="w-full px-6 py-3 rounded-xl border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] font-manrope font-bold transition-all hover:bg-[var(--color-surface-container-low)]"
-              >
-                Volver al inicio
-              </button>
-            </motion.div>
-          )}
-
           {/* Step 1: Choose transfer type */}
-          {hasBalance && step === 1 && (
+          {step === 1 && (
             <motion.div
               key="step1"
               initial={{ opacity: 0, y: 20 }}
@@ -730,10 +690,10 @@ export default function SendPage() {
                         <input
                           type="tel"
                           placeholder="Número de teléfono"
-                          value={phone.replace(/(\d{2})(?=\d)/g, "$1 ")}
+                          value={phone.replace(/(\d{3})(?=\d)/g, "$1 ")}
                           onChange={(e) => handlePhoneChange(e.target.value)}
                           disabled={isSearching || activeField === "alias"}
-                          maxLength={11}
+                          maxLength={12}
                           className={`flex-1 h-10 px-4 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/35 ${
                             activeField === "alias" ? "opacity-40 pointer-events-none border-[var(--color-outline-variant)]/30" : "border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)]"
                           }`}

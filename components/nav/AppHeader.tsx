@@ -92,7 +92,16 @@ export function AppHeader({ onBack, showBack }: AppHeaderProps) {
       {/* Right: Bell + QR */}
       <div className="flex items-center gap-2">
 
-        {/* Bell notification — TODO: wire up when notifications API is ready */}
+        {/* Alerts */}
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all hover:scale-105 cursor-pointer"
+          style={{
+            background: "var(--color-primary-fixed)",
+            border: "1px solid rgba(0,62,199,0.08)",
+          }}
+        >
+          <Icon name="notifications_none" size={18} className="text-[var(--color-on-surface)]" />
+        </div>
 
         {/* QR */}
         <div
