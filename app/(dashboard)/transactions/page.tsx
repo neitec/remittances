@@ -4,15 +4,16 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTransactions } from "@/lib/hooks/queries/useTransactions";
 import { useMe } from "@/lib/hooks/queries/useMe";
-import { TransactionType } from "@/lib/api";
+import { TransactionType, TransactionStatus } from "@/lib/api";
 import { formatCurrency, formatRelativeDate } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import { StaggerChildren, MotionItem } from "@/components/motion/StaggerChildren";
 import { TransactionsSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
 import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/nav/AppHeader";
-import { TransactionDetailDrawer } from "@/components/features/TransactionDetailDrawer";
+import { TransactionDetailModal } from "@/components/features/TransactionDetailModal";
 import { cn } from "@/lib/utils";
+import { getTransactionStatusConfig, normalizeStatus } from "@/lib/transactionStatus";
 
 type FilterType = TransactionType | "all" | "withdrawal";
 
@@ -191,6 +192,8 @@ export default function TransactionsPage() {
                         ? "text-[var(--color-on-surface)]"
                         : "text-[var(--color-primary)]";
 
+                      const statusCfg = getTransactionStatusConfig(normalizeStatus(txn.status as any), txn.type);
+
                       return (
                         <MotionItem key={txn.id}>
                           <motion.button
@@ -220,17 +223,21 @@ export default function TransactionsPage() {
                                 {amountSign}
                                 {formatCurrency(parseFloat(txn.amount))}
                               </p>
-                              <p className="text-xs text-[var(--color-on-surface-variant)]/60 font-inter flex items-center justify-end gap-1 mt-1">
-                                {txn.status === "COMPLETED" ? (
-                                  <>
-                                    <Icon name="check_circle" size={14} className="text-[var(--color-success-text)]" filled />
-                                  </>
+                              <div className="flex items-center justify-end gap-1 mt-1">
+                                {statusCfg.icon === "sync" ? (
+                                  <motion.span
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                  >
+                                    <Icon name={statusCfg.icon} size={14} className={statusCfg.iconClass} />
+                                  </motion.span>
                                 ) : (
-                                  <>
-                                    <Icon name="schedule" size={14} className="text-[var(--color-warning)]" />
-                                  </>
+                                  <Icon name={statusCfg.icon} size={14} className={statusCfg.iconClass} filled={statusCfg.iconFilled} />
                                 )}
-                              </p>
+                                <span className={cn("text-[10px] font-inter font-semibold", statusCfg.iconClass)}>
+                                  {statusCfg.label}
+                                </span>
+                              </div>
                             </div>
                           </motion.button>
                         </MotionItem>
@@ -275,8 +282,8 @@ export default function TransactionsPage() {
           )}
         </div>
 
-        {/* Transaction Detail Drawer */}
-        <TransactionDetailDrawer transaction={detailTxn || null} onClose={() => setSelectedTxn(null)} />
+        {/* Transaction Detail Modal */}
+        <TransactionDetailModal transaction={detailTxn || null} onClose={() => setSelectedTxn(null)} />
         </div>
       </motion.div>
     </div>

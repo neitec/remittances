@@ -62,23 +62,23 @@ export function TransactionDetailDrawer({
   const statusLabel =
     txn.status === "COMPLETED"
       ? "Completado"
-      : txn.status === "PENDING"
-        ? "Pendiente"
-        : "Fallido";
+      : txn.status === "FAILED"
+        ? "Fallido"
+        : "En proceso";
 
   const statusIcon =
     txn.status === "COMPLETED"
       ? "check_circle"
-      : txn.status === "PENDING"
-        ? "schedule"
-        : "cancel";
+      : txn.status === "FAILED"
+        ? "cancel"
+        : "schedule";
 
   const statusColor =
     txn.status === "COMPLETED"
       ? "text-[var(--color-success-text)]"
-      : txn.status === "PENDING"
-        ? "text-[var(--color-warning)]"
-        : "text-[var(--color-error)]";
+      : txn.status === "FAILED"
+        ? "text-[var(--color-error)]"
+        : "text-[var(--color-warning)]";
 
   const handleCopyId = async () => {
     try {

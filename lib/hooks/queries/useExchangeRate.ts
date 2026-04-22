@@ -23,7 +23,7 @@ export function useExchangeRate(from: string, to: string) {
     },
     staleTime: 1000 * 60 * 60,
     enabled: isAuthenticated,
-    initialData: { rate: 70.82, from, to },
+    initialData: { rate: 70.78, from, to },
     retry: 1,
   });
 }

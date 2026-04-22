@@ -11,6 +11,8 @@ import { HeroBalanceCard } from "@/components/features/Dashboard/HeroBalanceCard
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
+import { TransactionStatus } from "@/lib/types";
+import { getTransactionStatusConfig, normalizeStatus } from "@/lib/transactionStatus";
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -260,7 +262,7 @@ export default function DashboardPage() {
                     const isDeposit = txn.type === "DEPOSIT";
                     const isTransfer = txn.type === "TRANSFER";
                     const isOutgoing = isTransfer && me && txn.sourceAccount?.userId === me.id;
-                    const isCompleted = txn.status === "COMPLETED";
+                    const statusCfg = getTransactionStatusConfig(normalizeStatus(txn.status as any), txn.type);
 
                     const iconName = isOutgoing ? "north_east" : "south_west";
                     const iconBg = isOutgoing
@@ -301,7 +303,7 @@ export default function DashboardPage() {
                                 className={cn(
                                   "absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full",
                                   "border-2 border-white",
-                                  isCompleted ? "bg-emerald-400" : "bg-amber-400"
+                                  statusCfg.dotOverlayClass
                                 )}
                               />
                             </div>
@@ -338,18 +340,16 @@ export default function DashboardPage() {
                                 <span
                                   className={cn(
                                     "inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[10px] font-inter font-semibold uppercase tracking-[0.08em]",
-                                    isCompleted
-                                      ? "bg-emerald-50 text-emerald-600"
-                                      : "bg-amber-50 text-amber-500"
+                                    statusCfg.badgeClass
                                   )}
                                 >
                                   <span
                                     className={cn(
                                       "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                                      isCompleted ? "bg-emerald-500" : "bg-amber-400"
+                                      statusCfg.dotClass
                                     )}
                                   />
-                                  {isCompleted ? "Completado" : "Pendiente"}
+                                  {statusCfg.label}
                                 </span>
                               </div>
                             </div>

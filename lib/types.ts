@@ -26,10 +26,19 @@ export enum TransactionType {
   TRANSFER = "TRANSFER",
 }
 
+export enum TransactionStatus {
+  FUNDS_RECEIVED = "FUNDS_RECEIVED",
+  PAYMENT_SUBMITTED = "PAYMENT_SUBMITTED",
+  IN_REVIEW = "IN_REVIEW",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
-  status: string; // "PENDING" | "COMPLETED" | "FAILED"
+  status: TransactionStatus;
   sourceAccount?: Account | null;
   destinationAccount?: Account | null;
   amount: string;
