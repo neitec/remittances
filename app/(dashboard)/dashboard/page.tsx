@@ -5,14 +5,12 @@ import { motion } from "framer-motion";
 import { useAccounts } from "@/lib/hooks/queries/useAccounts";
 import { useMe } from "@/lib/hooks/queries/useMe";
 import { DashboardSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
-import { formatRelativeDate } from "@/lib/format";
 import { useTransactions } from "@/lib/hooks/queries/useTransactions";
 import { HeroBalanceCard } from "@/components/features/Dashboard/HeroBalanceCard";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
-import { TransactionStatus } from "@/lib/types";
-import { getTransactionStatusConfig, normalizeStatus } from "@/lib/transactionStatus";
+import { TransactionRow } from "@/components/features/Transactions/TransactionRow";
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -37,7 +35,7 @@ export default function DashboardPage() {
   const totalBalance = dashboardData?.totalBalance ?? 0;
   const allTransactions = transactionsData?.pages?.flatMap((p) => p.transactions) ?? [];
   // Sort by most recent first and get last 5
-  const lastTransactions = allTransactions
+  const lastTransactions = [...allTransactions]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
@@ -237,7 +235,7 @@ export default function DashboardPage() {
                 href="/transactions"
                 className="text-[12px] font-inter font-semibold text-[var(--color-primary)] hover:opacity-70 transition-opacity"
               >
-                Ver todo →
+                {allTransactions.length > 0 ? `Ver todo (${allTransactions.length}) →` : "Ver todo →"}
               </Link>
             </div>
 
@@ -258,106 +256,18 @@ export default function DashboardPage() {
                 </div>
               ) : lastTransactions.length > 0 ? (
                 <div>
-                  {lastTransactions.map((txn, idx) => {
-                    const isDeposit = txn.type === "DEPOSIT";
-                    const isTransfer = txn.type === "TRANSFER";
-                    const isOutgoing = isTransfer && me && txn.sourceAccount?.userId === me.id;
-                    const statusCfg = getTransactionStatusConfig(normalizeStatus(txn.status as any), txn.type);
-
-                    const iconName = isOutgoing ? "north_east" : "south_west";
-                    const iconBg = isOutgoing
-                      ? "bg-[var(--color-tertiary-fixed)] text-[var(--color-tertiary)]"
-                      : "bg-emerald-50 text-emerald-600";
-
-                    const amountSign = isOutgoing ? "−" : "+";
-                    const amountColor = isOutgoing
-                      ? "text-[var(--color-on-surface)]"
-                      : "text-[var(--color-primary)]";
-
-                    return (
-                      <motion.div
-                        key={txn.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.38,
-                          delay: 0.22 + idx * 0.055,
-                          ease: [0.16, 1, 0.3, 1],
-                        }}
-                      >
-                        <Link href={`/transactions?detail=${txn.id}`}>
-                          <div
-                            className={cn(
-                              "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors",
-                              "hover:bg-[rgba(0,62,199,0.05)]",
-                              idx < lastTransactions.length - 1 &&
-                                "border-b border-[var(--color-outline-variant)]/12"
-                            )}
-                          >
-                            {/* Type icon with status badge */}
-                            <div className="relative flex-shrink-0">
-                              <div className={cn("w-10 h-10 rounded-[13px] flex items-center justify-center", iconBg)}>
-                                <Icon name={iconName} size={18} />
-                              </div>
-                              <span
-                                className={cn(
-                                  "absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full",
-                                  "border-2 border-white",
-                                  statusCfg.dotOverlayClass
-                                )}
-                              />
-                            </div>
-
-                            {/* Label + date */}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-manrope font-semibold text-[var(--color-on-surface)] text-[13px] leading-tight">
-                                {isDeposit
-                                  ? "Depósito SEPA"
-                                  : isOutgoing
-                                    ? "Transferencia enviada"
-                                    : "Transferencia recibida"}
-                              </p>
-                              <p className="text-[11px] text-[var(--color-on-surface-variant)]/50 font-inter mt-0.5">
-                                {formatRelativeDate(txn.createdAt)}
-                              </p>
-                            </div>
-
-                            {/* Amount + status */}
-                            <div className="text-right flex-shrink-0">
-                              <p
-                                className={cn(
-                                  "font-manrope font-bold text-[13px] tabular leading-tight",
-                                  amountColor
-                                )}
-                              >
-                                {amountSign}
-                                {parseFloat(txn.amount).toLocaleString("de-DE", {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}{" "}€
-                              </p>
-                              <div className="flex justify-end mt-1">
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[10px] font-inter font-semibold uppercase tracking-[0.08em]",
-                                    statusCfg.badgeClass
-                                  )}
-                                >
-                                  <span
-                                    className={cn(
-                                      "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                                      statusCfg.dotClass
-                                    )}
-                                  />
-                                  {statusCfg.label}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
+                  {lastTransactions.map((txn, idx) => (
+                    <TransactionRow
+                      key={txn.id}
+                      txn={txn}
+                      currentUserId={me?.id}
+                      currentUserEmail={me?.email}
+                      onClick={() => {}}
+                      isLast={idx === lastTransactions.length - 1}
+                      variant="compact"
+                      animationDelay={0.22 + idx * 0.055}
+                    />
+                  ))}
                 </div>
               ) : (
                 <div className="py-12 px-6 text-center">

@@ -1,13 +1,12 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Transaction, TransactionType, TransactionStatus } from "@/lib/api";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { Transaction, TransactionType } from "@/lib/api";
+import { formatCurrency, formatDate, getInitials, getCountryEmoji } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import { useMe } from "@/lib/hooks/queries/useMe";
-import { useState } from "react";
 import { TransactionStatusSection } from "@/components/features/TransactionStatusSection";
-import { normalizeStatus } from "@/lib/transactionStatus";
+import { UiTransactionStatus, mapToUiStatus } from "@/lib/transactionStatus";
 import { cn } from "@/lib/utils";
 
 interface TransactionDetailModalProps {
@@ -15,73 +14,43 @@ interface TransactionDetailModalProps {
   onClose: () => void;
 }
 
-function getInitials(name?: string, surname?: string): string {
-  if (!name || !surname) return "??";
-  return `${name[0]}${surname[0]}`.toUpperCase();
-}
-
-function getCountryEmoji(country?: string): string {
-  if (!country || country.length !== 2) return "🌍";
-  const codePoints = country
-    .toUpperCase()
-    .split("")
-    .map((char) => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
-}
-
-const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-  exit: { opacity: 0 },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, scale: 0.94, y: 12 },
-  visible: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.96, y: 8 },
-};
-
 export function TransactionDetailModal({
   transaction: txn,
   onClose,
 }: TransactionDetailModalProps) {
   const { data: me } = useMe();
-  const [copiedId, setCopiedId] = useState(false);
 
   if (!txn) return null;
 
   const isTransfer = txn.type === TransactionType.TRANSFER;
-  const isOutgoing = isTransfer && me && txn.sourceAccount?.userId === me.id;
+  const isDeposit  = txn.type === TransactionType.DEPOSIT;
+
+  // Dual-check: userId match OR email match as fallback (handles ID format mismatches)
+  const isOutgoing = isTransfer && me && (
+    txn.sourceAccount?.userId === me.id ||
+    txn.sourceAccount?.user?.email === me.email
+  );
   const isIncoming = isTransfer && !isOutgoing;
-  const isDeposit = txn.type === TransactionType.DEPOSIT;
 
   const contact = isOutgoing ? txn.destinationAccount?.user : txn.sourceAccount?.user;
-  const sourceBalance = txn.sourceAccount?.balance;
-  const destBalance = txn.destinationAccount?.balance;
-  const postBalance = isOutgoing ? sourceBalance : destBalance;
 
-  const directionLabel = isOutgoing ? "Enviado" : isIncoming ? "Recibido" : "Depósito";
-  const amountSign = isOutgoing ? "−" : "+";
+  const directionLabel = isOutgoing ? "Enviado" : isIncoming ? "Recibido" : "Depósito SEPA";
+  const uiStatus       = mapToUiStatus(txn.type, txn.status, !!isOutgoing);
+  const isCompleted    = uiStatus === UiTransactionStatus.DEPOSIT_COMPLETED || uiStatus === UiTransactionStatus.TRANSFER_COMPLETED;
+  const accentColor    = isOutgoing ? "var(--color-tertiary)" : isIncoming ? "#059669" : "var(--color-primary)";
+  const amountSign     = isOutgoing ? "−" : "+";
 
   const amountColor = isOutgoing
     ? "text-[var(--color-on-surface)]"
     : "text-[var(--color-primary)]";
 
   const chipBg = isOutgoing
-    ? "bg-[var(--color-error-fixed)] text-[var(--color-error)]"
-    : "bg-[var(--color-success-bg)] text-[var(--color-success-text)]";
+    ? "bg-red-50 text-red-600"
+    : isIncoming
+      ? "bg-[var(--color-success-bg)] text-[var(--color-success-text)]"
+      : "bg-[var(--color-primary-fixed)] text-[var(--color-primary)]";
 
   const chipIcon = isOutgoing ? "north_east" : "south_west";
-
-  const handleCopyId = async () => {
-    try {
-      await navigator.clipboard.writeText(txn.id);
-      setCopiedId(true);
-      setTimeout(() => setCopiedId(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
 
   return (
     <AnimatePresence>
@@ -90,11 +59,10 @@ export function TransactionDetailModal({
           {/* Backdrop */}
           <motion.div
             key="backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/30 backdrop-blur-[6px] z-50"
           />
@@ -102,15 +70,14 @@ export function TransactionDetailModal({
           {/* Card modal */}
           <motion.div
             key="modal"
-            variants={cardVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            transition={{ type: "spring", damping: 28, stiffness: 320, mass: 0.85 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             className={cn(
               "fixed z-50 inset-x-0 mx-auto",
               "bottom-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
-              "w-full max-w-[440px]",
+              "w-full max-w-[560px]",
               "bg-[var(--color-surface-container-lowest)]",
               "rounded-t-[28px] sm:rounded-[28px]",
               "shadow-[0_24px_60px_rgba(0,0,0,0.18),0_4px_16px_rgba(0,0,0,0.06)]",
@@ -120,13 +87,16 @@ export function TransactionDetailModal({
             )}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Directional accent bar */}
+            <div className="h-[3px] w-full flex-shrink-0" style={{ background: accentColor }} />
+
             {/* Drag handle (mobile only) */}
             <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
               <div className="w-9 h-1 rounded-full bg-[var(--color-outline-variant)]/40" />
             </div>
 
             {/* Mini header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-2 flex-shrink-0 sm:pt-5">
+            <div className="flex items-center justify-between px-6 pt-4 pb-2 flex-shrink-0 sm:pt-5">
               <span
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full",
@@ -138,10 +108,8 @@ export function TransactionDetailModal({
                 {directionLabel}
               </span>
 
-              <motion.button
+              <button
                 onClick={onClose}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.93 }}
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center",
                   "bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)]",
@@ -149,22 +117,25 @@ export function TransactionDetailModal({
                 )}
               >
                 <Icon name="close" size={18} />
-              </motion.button>
+              </button>
             </div>
 
             {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 px-5 pb-5 space-y-3">
+            <div className="overflow-y-auto flex-1 px-6 pb-5 space-y-3">
               {/* Amount hero */}
-              <div className="text-center pt-4 pb-5">
+              <div className={cn("text-center pt-4 pb-5 rounded-2xl", isCompleted && "bg-[var(--color-success-bg)]/60")}>
                 <p
                   className={cn(
                     "font-manrope font-extrabold leading-none tracking-tight",
-                    "text-[clamp(40px,10vw,52px)]",
+                    "text-[clamp(44px,10vw,56px)]",
                     amountColor
                   )}
                 >
                   {amountSign}
                   {formatCurrency(parseFloat(txn.amount))}
+                </p>
+                <p className="mt-1 text-[11px] font-inter font-bold uppercase tracking-[0.14em] text-[var(--color-on-surface-variant)]/45">
+                  {txn.currency}
                 </p>
 
                 {txn.reference && (
@@ -267,8 +238,8 @@ export function TransactionDetailModal({
 
               {/* Status section */}
               <TransactionStatusSection
-                status={normalizeStatus(txn.status)}
-                type={txn.type}
+                uiStatus={uiStatus}
+                isUserOrigin={isDeposit ? undefined : !!isOutgoing}
               />
 
               {/* Metadata list */}
@@ -279,7 +250,6 @@ export function TransactionDetailModal({
                   "divide-y divide-[var(--color-outline-variant)]/10"
                 )}
               >
-                {/* Date row */}
                 <div className="flex items-center justify-between px-4 py-3.5">
                   <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/60">
                     Fecha
@@ -288,68 +258,27 @@ export function TransactionDetailModal({
                     {formatDate(txn.createdAt)}
                   </p>
                 </div>
-
-                {/* Post-balance row (transfers) */}
-                {isTransfer && postBalance && (
-                  <div className="flex items-center justify-between px-4 py-3.5">
-                    <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/60">
-                      {isOutgoing ? "Saldo tras envío" : "Saldo tras recepción"}
-                    </p>
-                    <p className="text-sm font-manrope font-bold text-[var(--color-on-surface)]">
-                      {formatCurrency(parseFloat(postBalance))}
-                    </p>
-                  </div>
-                )}
-
-                {/* ID row */}
-                <div className="flex items-center justify-between px-4 py-3.5">
-                  <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/60">
-                    ID
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-mono text-[var(--color-on-surface-variant)]">
-                      {txn.id.substring(0, 8)}…{txn.id.substring(txn.id.length - 6)}
-                    </p>
-                    <motion.button
-                      onClick={handleCopyId}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-1 rounded-md hover:bg-[var(--color-surface-container)] transition-colors"
-                    >
-                      <Icon
-                        name={copiedId ? "check_circle" : "content_copy"}
-                        size={15}
-                        className={copiedId
-                          ? "text-[var(--color-success-text)]"
-                          : "text-[var(--color-on-surface-variant)]/50"
-                        }
-                        filled={copiedId}
-                      />
-                    </motion.button>
-                  </div>
-                </div>
               </div>
             </div>
 
             {/* Sticky footer */}
             <div
               className={cn(
-                "flex-shrink-0 px-5 py-4 border-t border-[var(--color-outline-variant)]/10",
+                "flex-shrink-0 px-6 py-4 border-t border-[var(--color-outline-variant)]/10",
                 "bg-[var(--color-surface-container-lowest)]"
               )}
             >
-              <motion.button
+              <button
                 onClick={onClose}
-                whileHover={{ opacity: 0.88 }}
-                whileTap={{ scale: 0.98 }}
                 className={cn(
                   "w-full py-3.5 rounded-xl",
                   "bg-[var(--color-primary)] text-white",
                   "font-manrope font-bold text-[15px]",
-                  "transition-opacity"
+                  "hover:opacity-90 transition-opacity"
                 )}
               >
                 Cerrar
-              </motion.button>
+              </button>
             </div>
           </motion.div>
         </>

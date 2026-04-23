@@ -17,5 +17,6 @@ export function useTransactions(filters?: TransactionFilters) {
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.nextPage : undefined,
     enabled: isAuthenticated,
+    staleTime: 0,
   });
 }

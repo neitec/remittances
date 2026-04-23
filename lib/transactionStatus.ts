@@ -1,5 +1,15 @@
 import { TransactionStatus, TransactionType } from '@/lib/types';
 
+export type TransactionDirection = "outgoing" | "incoming";
+
+export enum UiTransactionStatus {
+  DEPOSIT_RECEIVED   = 'DEPOSIT_RECEIVED',
+  DEPOSIT_COMPLETED  = 'DEPOSIT_COMPLETED',
+  TRANSFER_PENDING   = 'TRANSFER_PENDING',
+  TRANSFER_COMPLETED = 'TRANSFER_COMPLETED',
+  FAILED             = 'FAILED',
+}
+
 export interface TransactionStatusConfig {
   label: string;
   description: string;
@@ -9,130 +19,119 @@ export interface TransactionStatusConfig {
   dotClass: string;
   badgeClass: string;
   dotOverlayClass: string;
-  step: number;
-  totalSteps: number;
   isPulse: boolean;
 }
 
-export function normalizeStatus(raw: string): TransactionStatus {
-  if (raw === 'PENDING') return TransactionStatus.IN_PROGRESS;
-  return raw as TransactionStatus;
+/** Single transformation point: raw API tx → UI status. */
+export function mapToUiStatus(
+  type: TransactionType,
+  apiStatus: string,
+  isUserOrigin?: boolean,
+): UiTransactionStatus {
+  if (apiStatus === TransactionStatus.FAILED) return UiTransactionStatus.FAILED;
+
+  if (type === TransactionType.DEPOSIT) {
+    return apiStatus === TransactionStatus.COMPLETED
+      ? UiTransactionStatus.DEPOSIT_COMPLETED
+      : UiTransactionStatus.DEPOSIT_RECEIVED;
+  }
+
+  return apiStatus === TransactionStatus.COMPLETED
+    ? UiTransactionStatus.TRANSFER_COMPLETED
+    : UiTransactionStatus.TRANSFER_PENDING;
 }
 
 export function getTransactionStatusConfig(
-  status: TransactionStatus,
-  type: TransactionType
+  uiStatus: UiTransactionStatus,
+  isUserOrigin?: boolean,
 ): TransactionStatusConfig {
-  const isDeposit = type === TransactionType.DEPOSIT;
+  switch (uiStatus) {
 
-  switch (status) {
-    case TransactionStatus.FUNDS_RECEIVED:
+    case UiTransactionStatus.DEPOSIT_RECEIVED:
       return {
-        label: 'Fondos recibidos',
-        description: 'Hemos recibido tu depósito y estamos procesando la entrada de fondos.',
+        label: 'Depósito recibido',
+        description: 'Hemos recibido tu transferencia bancaria. Estamos verificando el ingreso y acreditaremos el saldo en tu cuenta en breve. Los fondos aún no están disponibles.',
         icon: 'download',
         iconFilled: false,
         iconClass: 'text-blue-500',
         dotClass: 'bg-blue-400',
         badgeClass: 'bg-blue-50 text-blue-600',
         dotOverlayClass: 'bg-blue-400',
-        step: 1,
-        totalSteps: 4,
         isPulse: true,
       };
 
-    case TransactionStatus.PAYMENT_SUBMITTED:
+    case UiTransactionStatus.DEPOSIT_COMPLETED:
       return {
-        label: 'Pago enviado',
-        description: 'Tu orden de pago ha sido enviada a la red. Esperando confirmación.',
-        icon: 'send',
-        iconFilled: false,
-        iconClass: 'text-blue-500',
-        dotClass: 'bg-blue-400',
-        badgeClass: 'bg-blue-50 text-blue-600',
-        dotOverlayClass: 'bg-blue-400',
-        step: 1,
-        totalSteps: 4,
-        isPulse: true,
-      };
-
-    case TransactionStatus.IN_REVIEW:
-      return {
-        label: 'En revisión',
-        description: 'Nuestra operación está siendo verificada por el equipo de cumplimiento. Esto es habitual y no afecta al resultado.',
-        icon: 'shield_person',
-        iconFilled: false,
-        iconClass: 'text-amber-500',
-        dotClass: 'bg-amber-400',
-        badgeClass: 'bg-amber-50 text-amber-600',
-        dotOverlayClass: 'bg-amber-400',
-        step: 2,
-        totalSteps: 4,
-        isPulse: false,
-      };
-
-    case TransactionStatus.IN_PROGRESS:
-      return {
-        label: 'En progreso',
-        description: isDeposit
-          ? 'Tus fondos están en camino y serán acreditados en breve.'
-          : 'La transferencia está siendo procesada por la red. Suele completarse en minutos.',
-        icon: 'sync',
-        iconFilled: false,
-        iconClass: 'text-[var(--color-primary)]',
-        dotClass: 'bg-[var(--color-primary)]',
-        badgeClass: 'bg-[var(--color-primary-fixed)] text-[var(--color-primary)]',
-        dotOverlayClass: 'bg-[var(--color-primary)]',
-        step: 3,
-        totalSteps: 4,
-        isPulse: true,
-      };
-
-    case TransactionStatus.COMPLETED:
-      return {
-        label: 'Completado',
-        description: isDeposit
-          ? 'Tu depósito ha sido acreditado correctamente en tu wallet.'
-          : 'La transferencia se ha completado y el destinatario ha recibido los fondos.',
+        label: 'Depósito completado',
+        description: 'Tu depósito ha sido acreditado correctamente. El saldo ya está disponible en tu cuenta.',
         icon: 'check_circle',
         iconFilled: true,
         iconClass: 'text-[var(--color-success-text)]',
         dotClass: 'bg-emerald-400',
         badgeClass: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
         dotOverlayClass: 'bg-emerald-400',
-        step: 4,
-        totalSteps: 4,
         isPulse: false,
       };
 
-    case TransactionStatus.FAILED:
+    case UiTransactionStatus.TRANSFER_PENDING:
+      return isUserOrigin
+        ? {
+            label: 'Envío realizado',
+            description: 'Tu pago ha sido registrado y está siendo procesado. Los fondos llegarán a tu contacto en breve.',
+            icon: 'send',
+            iconFilled: false,
+            iconClass: 'text-blue-500',
+            dotClass: 'bg-blue-400',
+            badgeClass: 'bg-blue-50 text-blue-600',
+            dotOverlayClass: 'bg-blue-400',
+            isPulse: true,
+          }
+        : {
+            label: 'Pago recibido',
+            description: 'Tu contacto ha iniciado la transferencia. Estamos procesando el pago — los fondos aún no están disponibles en tu cuenta.',
+            icon: 'download',
+            iconFilled: false,
+            iconClass: 'text-blue-500',
+            dotClass: 'bg-blue-400',
+            badgeClass: 'bg-blue-50 text-blue-600',
+            dotOverlayClass: 'bg-blue-400',
+            isPulse: true,
+          };
+
+    case UiTransactionStatus.TRANSFER_COMPLETED:
       return {
-        label: 'Fallido',
-        description: 'La operación no pudo completarse. Si el importe fue debitado, será reembolsado en 1–3 días hábiles.',
+        label: 'Completado',
+        description: isUserOrigin
+          ? 'Tu pago ha llegado. Los fondos ya están disponibles en la cuenta de tu contacto.'
+          : 'Has recibido el pago. Los fondos ya están disponibles en tu cuenta.',
+        icon: 'check_circle',
+        iconFilled: true,
+        iconClass: 'text-[var(--color-success-text)]',
+        dotClass: 'bg-emerald-400',
+        badgeClass: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
+        dotOverlayClass: 'bg-emerald-400',
+        isPulse: false,
+      };
+
+    case UiTransactionStatus.FAILED:
+      return {
+        label: isUserOrigin === undefined
+          ? 'No procesado'
+          : isUserOrigin
+            ? 'No enviado'
+            : 'No completado',
+        description: isUserOrigin === undefined
+          ? 'No hemos podido procesar el ingreso. Si realizaste la transferencia bancaria, el importe volverá a tu cuenta de origen en 1–3 días hábiles.'
+          : isUserOrigin
+            ? 'No se pudo completar la transferencia. No se ha realizado ningún cargo en tu cuenta. Si los fondos estaban reservados, serán devueltos en 1–3 días hábiles.'
+            : 'La transferencia no pudo completarse. Tu contacto no ha sido cargado y recibirá una notificación.',
         icon: 'cancel',
         iconFilled: false,
         iconClass: 'text-[var(--color-error)]',
         dotClass: 'bg-[var(--color-error)]',
         badgeClass: 'bg-[var(--color-error-container)] text-[var(--color-error)]',
         dotOverlayClass: 'bg-[var(--color-error)]',
-        step: 4,
-        totalSteps: 4,
         isPulse: false,
-      };
-
-    default:
-      return {
-        label: 'Pendiente',
-        description: 'Esta operación está siendo procesada.',
-        icon: 'schedule',
-        iconFilled: false,
-        iconClass: 'text-amber-500',
-        dotClass: 'bg-amber-400',
-        badgeClass: 'bg-amber-50 text-amber-600',
-        dotOverlayClass: 'bg-amber-400',
-        step: 1,
-        totalSteps: 4,
-        isPulse: true,
       };
   }
 }

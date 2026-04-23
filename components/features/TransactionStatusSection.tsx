@@ -2,60 +2,35 @@
 
 import { motion } from "framer-motion";
 import { Icon } from "@/components/ui/Icon";
-import { TransactionStatus, TransactionType } from "@/lib/types";
-import { getTransactionStatusConfig } from "@/lib/transactionStatus";
+import { UiTransactionStatus, getTransactionStatusConfig } from "@/lib/transactionStatus";
 import { cn } from "@/lib/utils";
 
 interface TransactionStatusSectionProps {
-  status: TransactionStatus;
-  type: TransactionType;
+  uiStatus: UiTransactionStatus;
+  isUserOrigin?: boolean;
 }
 
-export function TransactionStatusSection({ status, type }: TransactionStatusSectionProps) {
-  const cfg = getTransactionStatusConfig(status, type);
-  const isFailed = status === TransactionStatus.FAILED;
+export function TransactionStatusSection({ uiStatus, isUserOrigin }: TransactionStatusSectionProps) {
+  const cfg      = getTransactionStatusConfig(uiStatus, isUserOrigin);
+  const isFailed = uiStatus === UiTransactionStatus.FAILED;
 
-  const isDeposit = type === TransactionType.DEPOSIT;
-  const steps: { key: TransactionStatus; shortLabel: string }[] = isDeposit
+  const isDeposit    = uiStatus === UiTransactionStatus.DEPOSIT_RECEIVED || uiStatus === UiTransactionStatus.DEPOSIT_COMPLETED;
+  const isCompleted  = uiStatus === UiTransactionStatus.DEPOSIT_COMPLETED || uiStatus === UiTransactionStatus.TRANSFER_COMPLETED;
+
+  const steps: { shortLabel: string; done: boolean; active: boolean }[] = isDeposit
     ? [
-        { key: TransactionStatus.FUNDS_RECEIVED, shortLabel: "Recibido" },
-        { key: TransactionStatus.IN_PROGRESS, shortLabel: "Procesando" },
-        { key: TransactionStatus.COMPLETED, shortLabel: "Completado" },
+        { shortLabel: 'Recibido',   done: isCompleted,  active: !isCompleted },
+        { shortLabel: 'Completado', done: isCompleted,  active: false        },
+      ]
+    : isUserOrigin
+    ? [
+        { shortLabel: 'Enviado',    done: isCompleted,  active: !isCompleted },
+        { shortLabel: 'Completado', done: isCompleted,  active: false        },
       ]
     : [
-        { key: TransactionStatus.PAYMENT_SUBMITTED, shortLabel: "Enviado" },
-        { key: TransactionStatus.IN_PROGRESS, shortLabel: "Procesando" },
-        { key: TransactionStatus.COMPLETED, shortLabel: "Completado" },
+        { shortLabel: 'Recibido',   done: isCompleted,  active: !isCompleted },
+        { shortLabel: 'Completado', done: isCompleted,  active: false        },
       ];
-
-  const statusOrder: TransactionStatus[] = isDeposit
-    ? [
-        TransactionStatus.FUNDS_RECEIVED,
-        TransactionStatus.IN_REVIEW,
-        TransactionStatus.IN_PROGRESS,
-        TransactionStatus.COMPLETED,
-      ]
-    : [
-        TransactionStatus.PAYMENT_SUBMITTED,
-        TransactionStatus.IN_REVIEW,
-        TransactionStatus.IN_PROGRESS,
-        TransactionStatus.COMPLETED,
-      ];
-
-  const currentIdx = statusOrder.indexOf(status);
-
-  function getStepState(stepKey: TransactionStatus): "done" | "active" | "pending" {
-    if (isFailed) {
-      const stepIdx = statusOrder.indexOf(stepKey);
-      if (stepIdx < currentIdx) return "done";
-      if (stepIdx === currentIdx) return "active";
-      return "pending";
-    }
-    const stepIdx = statusOrder.indexOf(stepKey);
-    if (stepIdx < currentIdx) return "done";
-    if (stepIdx === currentIdx) return "active";
-    return "pending";
-  }
 
   return (
     <div className="bg-[var(--color-surface-container-low)] rounded-2xl p-4 border border-[var(--color-outline-variant)]/10 space-y-4">
@@ -64,16 +39,15 @@ export function TransactionStatusSection({ status, type }: TransactionStatusSect
       </p>
 
       {!isFailed && (
-        <div className="flex items-center gap-0">
+        <div className="flex items-center gap-0 max-w-[240px] mx-auto w-full">
           {steps.map((step, idx) => {
-            const state = getStepState(step.key);
             const isLast = idx === steps.length - 1;
 
             return (
-              <div key={step.key} className="flex items-center flex-1">
+              <div key={idx} className="flex items-center flex-1">
                 <div className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="relative flex items-center justify-center">
-                    {state === "active" && cfg.isPulse && (
+                    {step.active && cfg.isPulse && (
                       <span
                         className={cn(
                           "absolute w-5 h-5 rounded-full animate-pulse-ring opacity-50",
@@ -84,9 +58,9 @@ export function TransactionStatusSection({ status, type }: TransactionStatusSect
                     <div
                       className={cn(
                         "w-3 h-3 rounded-full border-2 transition-all duration-500 relative z-10",
-                        state === "done"
+                        step.done
                           ? "bg-[var(--color-success-text)] border-[var(--color-success-text)]"
-                          : state === "active"
+                          : step.active
                             ? cn("border-current", cfg.iconClass, cfg.dotClass)
                             : "bg-transparent border-[var(--color-outline-variant)]/40"
                       )}
@@ -94,12 +68,12 @@ export function TransactionStatusSection({ status, type }: TransactionStatusSect
                   </div>
                   <p
                     className={cn(
-                      "text-[9px] font-inter font-semibold tracking-wide text-center leading-tight",
-                      state === "pending"
-                        ? "text-[var(--color-on-surface-variant)]/40"
-                        : state === "done"
-                          ? "text-[var(--color-success-text)]"
-                          : cfg.iconClass
+                      "text-[9px] font-inter font-semibold tracking-wide text-center leading-tight w-[52px]",
+                      step.done
+                        ? "text-[var(--color-success-text)]"
+                        : step.active
+                          ? cfg.iconClass
+                          : "text-[var(--color-on-surface-variant)]/40"
                     )}
                   >
                     {step.shortLabel}
@@ -111,7 +85,7 @@ export function TransactionStatusSection({ status, type }: TransactionStatusSect
                     <motion.div
                       className="h-full rounded-full bg-[var(--color-success-text)]"
                       initial={{ width: "0%" }}
-                      animate={{ width: state === "done" ? "100%" : "0%" }}
+                      animate={{ width: step.done ? "100%" : "0%" }}
                       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                     />
                   </div>
@@ -122,16 +96,15 @@ export function TransactionStatusSection({ status, type }: TransactionStatusSect
         </div>
       )}
 
+      {/* Status card */}
       <div
         className={cn(
           "rounded-xl p-3 flex items-start gap-3",
           isFailed
             ? "bg-[var(--color-error-container)]/40"
-            : status === TransactionStatus.IN_REVIEW
-              ? "bg-amber-50"
-              : cfg.isPulse
-                ? "bg-[var(--color-primary-fixed)]/50"
-                : "bg-[var(--color-success-bg)]"
+            : cfg.isPulse
+              ? "bg-[var(--color-primary-fixed)]/50"
+              : "bg-[var(--color-success-bg)]"
         )}
       >
         <div className="relative flex-shrink-0 flex items-center justify-center mt-0.5">
@@ -167,23 +140,8 @@ export function TransactionStatusSection({ status, type }: TransactionStatusSect
           <p className="text-xs text-[var(--color-on-surface-variant)] font-inter mt-0.5 leading-relaxed">
             {cfg.description}
           </p>
-
-          {status === TransactionStatus.IN_REVIEW && (
-            <div className="mt-2 flex items-center gap-1.5">
-              <Icon name="verified_user" size={11} className="text-amber-500 flex-shrink-0" />
-              <p className="text-[10px] font-inter text-amber-600 font-semibold">
-                Verificación de cumplimiento normativo
-              </p>
-            </div>
-          )}
         </div>
       </div>
-
-      {status === TransactionStatus.IN_REVIEW && (
-        <p className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/55 text-center">
-          La revisión suele resolverse en menos de 24 horas hábiles.
-        </p>
-      )}
     </div>
   );
 }
