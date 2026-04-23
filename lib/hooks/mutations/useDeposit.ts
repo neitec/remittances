@@ -13,7 +13,7 @@ export function useDeposit() {
       depositsEndpoint.initiate(data.amount || undefined, data.externalAccountId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
-      queryClient.invalidateQueries({ queryKey: queryKeys.transactions() });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
 }

@@ -16,7 +16,7 @@ export function useSendMoney() {
     onSuccess: (data) => {
       console.log('[useSendMoney] Mutation success:', data);
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
-      queryClient.invalidateQueries({ queryKey: queryKeys.transactions() });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
     onError: (error) => {
       console.error('[useSendMoney] Mutation error:', error);

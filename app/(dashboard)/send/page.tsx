@@ -13,8 +13,8 @@ import { ExternalAccountSelector } from "@/components/features/ExternalAccountSe
 import { toast } from "sonner";
 import { useAccounts } from "@/lib/hooks/queries/useAccounts";
 import { useTransactions } from "@/lib/hooks/queries/useTransactions";
-import { formatCurrency, maskIBAN } from "@/lib/format";
-import { ExternalAccount } from "@/lib/types";
+import { formatCurrency, maskIBAN, getInitials } from "@/lib/format";
+import { ExternalAccount, User } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { TransferProcessingScreen } from "@/components/features/TransferProcessingScreen";
@@ -56,6 +56,7 @@ export default function SendPage() {
   const [alias, setAlias] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
+  const [showMessage, setShowMessage] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [beneficiaryError, setBeneficiaryError] = useState("");
   const [activeField, setActiveField] = useState<ActiveField>(null);
@@ -67,6 +68,50 @@ export default function SendPage() {
   const totalBalance = dashboardData?.totalBalance ?? 0;
   const hasBalance = totalBalance > 0;
   const senderName = [me?.name, me?.surname].filter(Boolean).join(" ") || "Usuario";
+
+  // Top 3 most recent unique contacts from transfers
+  const frequentContacts: User[] = (() => {
+    const transfers = (transactionsData?.pages?.flatMap(p => p.transactions) ?? [])
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const seen = new Set<string>();
+    const result: User[] = [];
+    for (const txn of transfers) {
+      const isOutgoing = !!(me && (
+        txn.sourceAccount?.userId === me.id ||
+        txn.sourceAccount?.user?.email === me.email
+      ));
+      const contact = isOutgoing ? txn.destinationAccount?.user : txn.sourceAccount?.user;
+      if (!contact || seen.has(contact.id)) continue;
+      seen.add(contact.id);
+      result.push(contact);
+      if (result.length >= 3) break;
+    }
+    return result;
+  })();
+
+  const selectFrequentContact = (contact: User) => {
+    const fullPhone = contact.phone ?? "";
+    let code = "+34";
+    let local = fullPhone;
+    if (fullPhone.startsWith("+1-829")) {
+      code = "+1-829";
+      local = fullPhone.slice(6);
+    } else if (fullPhone.startsWith("+34")) {
+      code = "+34";
+      local = fullPhone.slice(3);
+    }
+    local = local.replace(/\D/g, "").slice(0, 9);
+    setCountryCode(code);
+    setPhone(local);
+    setActiveField(local ? "phone" : null);
+    setBeneficiaryError("");
+    if (local.length === 9) {
+      searchBeneficiary(code + local, {
+        onError: (err) => setBeneficiaryError(err instanceof Error ? err.message : "Contacto no encontrado"),
+        onSuccess: () => setBeneficiaryError(""),
+      });
+    }
+  };
 
   const QUICK_AMOUNTS = [50, 100, 200, 500];
 
@@ -745,20 +790,6 @@ export default function SendPage() {
                         />
                         <span className="text-[9px] font-inter font-bold uppercase tracking-[0.1em] px-2 py-1 rounded-full" style={{ background: "rgba(188,72,0,0.12)", color: "#bc4800" }}>Pronto</span>
                       </div>
-                      <AnimatePresence>
-                        {beneficiary && !beneficiaryError && sendMode === "user" && step === 2 && (
-                          <motion.button
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 8 }}
-                            onClick={() => setStep(3)}
-                            className="w-full h-11 rounded-[14px] font-manrope font-bold text-[14px] text-white bg-[var(--color-primary)] transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 mt-3 shadow-[0_4px_16px_rgba(0,62,199,0.22)]"
-                          >
-                            Continuar
-                            <Icon name="arrow_forward" size={16} className="text-white" />
-                          </motion.button>
-                        )}
-                      </AnimatePresence>
                     </div>
                   </div>
 
@@ -834,27 +865,55 @@ export default function SendPage() {
                     </div>
                   </div>
 
-                  {/* ── Card 3: Concepto ── */}
-                  <div
-                    className="rounded-[20px] overflow-hidden"
-                    style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
-                  >
-                    <div className="px-4 py-2.5 flex items-center gap-1.5" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Concepto</p>
-                      <span className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/30">(opcional)</span>
-                    </div>
-                    <div className="px-4 pb-3 pt-2">
-                      <textarea
-                        placeholder="Escribe un mensaje para el destinatario..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value.slice(0, 100))}
-                        disabled={isSending}
-                        rows={1}
-                        className="w-full px-3.5 py-2 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border border-[var(--color-outline-variant)]/40 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/30 resize-none"
-                        style={{ background: "var(--color-surface-container-lowest)" }}
-                      />
-                    </div>
-                  </div>
+                  {/* ── Concepto (collapsible) ── */}
+                  <AnimatePresence mode="wait">
+                    {!showMessage ? (
+                      <motion.button
+                        key="trigger"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowMessage(true)}
+                        className="flex items-center gap-1.5 px-1 py-1 text-[var(--color-on-surface-variant)]/50 hover:text-[var(--color-primary)] transition-colors"
+                      >
+                        <Icon name="add" size={14} />
+                        <span className="font-inter text-[12px]">Añadir concepto <span className="opacity-60">(opcional)</span></span>
+                      </motion.button>
+                    ) : (
+                      <motion.div
+                        key="input"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                        className="rounded-[16px] overflow-hidden"
+                        style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                      >
+                        <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                          <span className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Concepto</span>
+                          <button
+                            onClick={() => { setShowMessage(false); setMessage(""); }}
+                            className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-[var(--color-surface-container)] transition-colors text-[var(--color-on-surface-variant)]/40 hover:text-[var(--color-on-surface-variant)]"
+                          >
+                            <Icon name="close" size={13} />
+                          </button>
+                        </div>
+                        <div className="px-4 pb-3 pt-2">
+                          <textarea
+                            autoFocus
+                            placeholder="Escribe un mensaje para el destinatario..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value.slice(0, 100))}
+                            disabled={isSending}
+                            rows={2}
+                            className="w-full px-3.5 py-2 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border border-[var(--color-outline-variant)]/40 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/30 resize-none"
+                            style={{ background: "var(--color-surface-container-lowest)" }}
+                          />
+                          <p className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/30 text-right mt-1">{message.length}/100</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* ── Transfer summary ── */}
                   <AnimatePresence>
@@ -908,53 +967,30 @@ export default function SendPage() {
 
                   {/* Frecuentes card */}
                   <div
-                    className="rounded-[22px] p-5 space-y-4 relative"
+                    className="rounded-[22px] p-5 space-y-4"
                     style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
                   >
-                    {/* Blur overlay + Próximamente badge */}
-                    <div className="absolute inset-0 rounded-[22px] backdrop-blur-[3px] flex items-center justify-center pointer-events-none">
-                      <span
-                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-inter font-bold uppercase tracking-[0.1em]"
-                        style={{ background: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" }}
-                      >
-                        Próximamente
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between opacity-50 pointer-events-none">
-                      <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]/50">Frecuentes y favoritos</p>
-                      <button
-                        onClick={() => toast.info("Ver todos los contactos próximamente")}
-                        className="text-[11px] font-inter font-bold text-[var(--color-primary)] hover:opacity-65 transition-opacity"
-                      >
-                        Ver todos
-                      </button>
-                    </div>
+                    <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]/50">Frecuentes</p>
 
                     <div className="flex items-start gap-3">
-                      {transactionsData?.pages[0]?.transactions?.slice(0, 3)?.length ? (
-                        transactionsData.pages[0].transactions.slice(0, 3).map((txn) => {
-                          const colors = ["#003ec7", "#bc4800", "#0d9488"];
-                          const colorIdx = Math.abs(txn.id.charCodeAt(0) % 3);
-                          const initial = txn.amount[0];
+                      {frequentContacts.length > 0 ? (
+                        frequentContacts.map((contact, idx) => {
+                          const palette = ["#003ec7", "#bc4800", "#0d9488"];
+                          const color = palette[idx % palette.length];
                           return (
                             <button
-                              key={txn.id}
-                              onClick={() => {
-                                if (txn.type === "TRANSFER") {
-                                  toast.info("Seleccionando contacto...");
-                                }
-                              }}
+                              key={contact.id}
+                              onClick={() => selectFrequentContact(contact)}
                               className="flex flex-col items-center gap-1.5 group transition-all flex-1"
                             >
                               <div
                                 className="w-12 h-12 rounded-full flex items-center justify-center text-white font-manrope font-bold text-[14px] transition-transform group-hover:scale-105 ring-2 ring-transparent group-hover:ring-[var(--color-primary)]/20"
-                                style={{ background: colors[colorIdx] }}
+                                style={{ background: color }}
                               >
-                                {initial}
+                                {getInitials(contact.name, contact.surname)}
                               </div>
                               <p className="font-inter text-[11px] font-medium text-[var(--color-on-surface)] leading-tight truncate w-full text-center">
-                                +{txn.amount}
+                                {contact.name}
                               </p>
                             </button>
                           );
