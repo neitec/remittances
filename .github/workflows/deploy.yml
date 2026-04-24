@@ -1,0 +1,97 @@
+name: Deploy Frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: choice
+        options: [dev, staging, prod]
+        default: dev
+
+permissions:
+  id-token: write   # necesario para OIDC
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ENV: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Configure AWS credentials (OIDC — sin access keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::478135004814:role/remittances-github-actions
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          audience: sts.amazonaws.com
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Fetch env vars from Secrets Manager
+        run: |
+          aws secretsmanager get-secret-value \
+            --secret-id "remittances-${{ env.ENV }}-front" \
+            --query SecretString \
+            --output text \
+          | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' > .env.production
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export
+        run: npm run build
+
+      - name: Remove env file from disk
+        run: rm -f .env.production
+
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file .aws/cloudformation.yml \
+            --stack-name "remittances-${{ env.ENV }}" \
+            --parameter-overrides ProjectName=remittances Environment=${{ env.ENV }} \
+            --no-fail-on-empty-changeset \
+            --region ${{ secrets.AWS_REGION }}
+
+      - name: Get stack outputs
+        run: |
+          BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name "remittances-${{ env.ENV }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
+            --output text)
+          echo "BUCKET=$BUCKET" >> $GITHUB_ENV
+
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name "remittances-${{ env.ENV }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" \
+            --output text)
+          echo "DIST_ID=$DIST_ID" >> $GITHUB_ENV
+
+          DIST_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name "remittances-${{ env.ENV }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionDomain'].OutputValue" \
+            --output text)
+          echo "DIST_DOMAIN=$DIST_DOMAIN" >> $GITHUB_ENV
+
+      - name: Sync to S3
+        run: aws s3 sync ./out "s3://${{ env.BUCKET }}" --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ env.DIST_ID }}" \
+            --paths "/*"
+
+      - name: Done
+        run: echo "✅ https://${{ env.DIST_DOMAIN }}"
