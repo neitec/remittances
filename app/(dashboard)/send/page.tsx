@@ -341,7 +341,7 @@ export default function SendPage() {
 
                 <div className="relative flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-[12px] flex items-center justify-center overflow-hidden" style={{ background: "rgba(0,62,199,0.06)", boxShadow: "0 4px 12px rgba(0,62,199,0.10)" }}>
-                    <Image src="/remita-isologo.png" alt="Remita" width={40} height={40} className="object-contain" style={{ mixBlendMode: "multiply" }} />
+                    <Image src="/remita-isologo.png" alt="Remita GCS" width={40} height={40} className="object-contain" style={{ mixBlendMode: "multiply" }} />
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success-border)" }}>
                     <span className="relative flex items-center justify-center w-2 h-2">
@@ -352,7 +352,7 @@ export default function SendPage() {
                   </div>
                 </div>
                 <div className="relative space-y-1">
-                  <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)] leading-tight">A un usuario de Remita</h3>
+                  <h3 className="font-manrope font-semibold text-[15px] text-[var(--color-on-surface)] leading-tight">A un usuario de Remita GCS</h3>
                   <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed">Envío entre wallets on-chain.</p>
                 </div>
                 <div className="relative mt-3 pt-2.5 flex items-center justify-between" style={{ borderTop: "1px solid rgba(0,62,199,0.07)" }}>
@@ -450,7 +450,7 @@ export default function SendPage() {
                     A una cuenta bancaria
                   </h3>
                   <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/40 leading-relaxed">
-                    Transferencias externas a usuarios fuera de Remita.
+                    Transferencias externas a usuarios fuera de Remita GCS.
                   </p>
                 </div>
               </motion.button>
@@ -767,7 +767,7 @@ export default function SendPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-manrope font-bold text-[var(--color-on-surface)] text-[13px] truncate">{beneficiary.name}</p>
-                            <p className="text-[10px] text-[var(--color-on-surface-variant)]/50 font-inter">Usuario de Remita</p>
+                            <p className="text-[10px] text-[var(--color-on-surface-variant)]/50 font-inter">Usuario de Remita GCS</p>
                           </div>
                           <Icon name="check_circle" size={15} className="text-[var(--color-success-text)] flex-shrink-0" filled />
                         </motion.div>
@@ -784,7 +784,7 @@ export default function SendPage() {
                         <span className="font-manrope font-bold text-[15px] leading-none text-[var(--color-on-surface-variant)]/35">@</span>
                         <input
                           type="text"
-                          placeholder="Alias de Remita"
+                          placeholder="Alias de Remita GCS"
                           disabled
                           className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter text-[13px] outline-none placeholder:text-[var(--color-on-surface-variant)]/35"
                         />

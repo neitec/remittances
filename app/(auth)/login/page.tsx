@@ -111,7 +111,7 @@ export default function LoginPage() {
               <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg border border-white/30">
                 <Image
                   src="/remita-isologo.png"
-                  alt="Remita"
+                  alt="Remita GCS"
                   width={40}
                   height={40}
                   className="object-contain"
@@ -123,7 +123,7 @@ export default function LoginPage() {
               variants={item}
               className="text-5xl lg:text-6xl font-manrope font-extrabold text-white mb-2"
             >
-              Remita
+              Remita GCS
             </motion.h1>
             <motion.p
               variants={item}
@@ -306,7 +306,7 @@ export default function LoginPage() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
       >
-        Remita · Tu dinero llega al instante
+        Remita GCS · Tu dinero llega al instante
       </motion.p>
     </div>
   );

@@ -129,7 +129,7 @@ export function TransferProcessingScreen({
         transition={{ duration: 0.55, delay: 0.2 }}
         className="absolute top-10 text-white/30 text-[10px] font-inter tracking-[0.22em] uppercase"
       >
-        Transferencia on-chain · Remita
+        Transferencia on-chain · Remita GCS
       </motion.p>
 
       {/* Amount */}

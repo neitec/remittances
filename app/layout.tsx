@@ -18,8 +18,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Remita - Envía dinero sin comisiones",
-  description: "Remita · Tu dinero llega al instante. Envía dinero a República Dominicana de forma rápida, segura y sin comisiones ocultas.",
+  title: "Remita GCS - Envía dinero sin comisiones",
+  description: "Remita GCS · Tu dinero llega al instante. Envía dinero a República Dominicana de forma rápida, segura y sin comisiones ocultas.",
 };
 
 export default function RootLayout({

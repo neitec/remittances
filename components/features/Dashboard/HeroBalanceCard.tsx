@@ -14,7 +14,7 @@ interface HeroBalanceCardProps {
 const INFO_SECTIONS = [
   {
     title: null,
-    body: "Tu wallet on-chain en Remita te permite depositar euros y operar con una versión digital del euro, diseñada para mover dinero de forma más eficiente, transparente y global. Esta infraestructura reduce fricción y costes, y te da acceso a una experiencia de transferencias y cobros internacionales mucho más ágil.",
+    body: "Tu wallet on-chain en Remita GCS te permite depositar euros y operar con una versión digital del euro, diseñada para mover dinero de forma más eficiente, transparente y global. Esta infraestructura reduce fricción y costes, y te da acceso a una experiencia de transferencias y cobros internacionales mucho más ágil.",
   },
   {
     title: "Remesas",

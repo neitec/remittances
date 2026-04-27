@@ -14,7 +14,7 @@ interface Message {
 const INITIAL: Message = {
   id: "init",
   role: "ai",
-  text: "Hola! Soy Grace, tu asistente de Remita. Puedo ayudarte con transferencias, depósitos y todo lo relacionado con tu wallet on-chain. ¿En qué te puedo ayudar?",
+  text: "Hola! Soy Grace, tu asistente de Remita GCS. Puedo ayudarte con transferencias, depósitos y todo lo relacionado con tu wallet on-chain. ¿En qué te puedo ayudar?",
 };
 
 function getResponse(msg: string): string {
@@ -28,7 +28,7 @@ function getResponse(msg: string): string {
   if (t.includes("wallet") || t.includes("on-chain") || t.includes("chain") || t.includes("usdc"))
     return "Tu wallet on-chain te permite operar con una versión digital del euro. Próximamente también podrás recibir pagos en USDC y otras divisas digitales.";
   if (t.includes("comi") || t.includes("cost") || t.includes("precio") || t.includes("cuanto"))
-    return "Remita opera con comisiones muy bajas gracias a la infraestructura on-chain. Los costes exactos se muestran antes de confirmar cada operación.";
+    return "Remita GCS opera con comisiones muy bajas gracias a la infraestructura on-chain. Los costes exactos se muestran antes de confirmar cada operación.";
   return "Entendido. Estoy aquí para ayudarte con tu wallet, transferencias y depósitos. ¿Tienes alguna pregunta concreta?";
 }
 
