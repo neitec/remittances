@@ -38,7 +38,7 @@ export function Sidebar() {
       <div className="relative px-3 py-5">
         <Link href="/dashboard">
         <h1
-          className="font-manrope font-extrabold text-[28px] leading-none select-none"
+          className="font-manrope font-extrabold text-[25px] leading-none select-none flex items-baseline gap-[2px]"
           style={{
             letterSpacing: "-0.025em",
             background:
@@ -50,7 +50,8 @@ export function Sidebar() {
             animation: "wordmark-shimmer 8s ease-in-out infinite",
           }}
         >
-          Remita
+          <span>Remita</span>
+          <span>GCS</span>
         </h1>
         </Link>
       </div>
@@ -89,11 +90,11 @@ export function Sidebar() {
 
               <Icon
                 name={item.icon}
-                size={20}
+                size={22}
                 filled={isActive}
                 className="transition-colors flex-shrink-0"
               />
-              <span className="font-inter font-medium text-[14px]">
+              <span className="font-inter font-medium text-[15.4px]">
                 {item.label}
               </span>
             </Link>
