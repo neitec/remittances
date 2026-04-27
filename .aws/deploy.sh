@@ -31,7 +31,11 @@ echo "▶ [3/5] Deploying CloudFormation stack: ${STACK_NAME}..."
 aws cloudformation deploy \
   --template-file "$TEMPLATE_FILE" \
   --stack-name "$STACK_NAME" \
-  --parameter-overrides ProjectName="$PROJECT_NAME" Environment="$ENV" \
+  --parameter-overrides \
+    ProjectName="$PROJECT_NAME" \
+    Environment="$ENV" \
+    DomainName="${DOMAIN_NAME:-}" \
+    CertificateArn="${CERTIFICATE_ARN:-}" \
   --no-fail-on-empty-changeset \
   --profile "$AWS_PROFILE" \
   --region "$REGION"
