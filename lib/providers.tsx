@@ -62,10 +62,10 @@ function Auth0Interceptor({ children }: { children: ReactNode }) {
               config.headers.Authorization = `Bearer ${token}`;
             }
           } catch (error) {
-            console.error("[Auth0] ❌ Failed to get token:", error instanceof Error ? error.message : error);
+            console.error("[Auth0] Failed to get token:", error instanceof Error ? error.message : error);
           }
         } else {
-          console.debug("[Auth0] ⏳ Not authenticated yet, skipping token injection for:", config.url);
+          console.debug("[Auth0] Not authenticated yet, skipping token injection for:", config.url);
         }
         return config;
       },

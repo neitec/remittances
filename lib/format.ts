@@ -53,10 +53,16 @@ export function getInitials(name?: string, surname?: string): string {
   return `${name[0]}${surname[0]}`.toUpperCase();
 }
 
-export function getCountryEmoji(country?: string): string {
-  if (!country || country.length !== 2) return "🌍";
-  const codePoints = country.toUpperCase().split("").map((c) => 127397 + c.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
+const QUICK_AMOUNT_TIERS = [1, 5, 10, 20, 50, 100];
+
+/**
+ * Returns up to 4 quick amount suggestions based on the user's balance.
+ * Caps at the 100€ tier so big balances never expose "send everything" as a shortcut.
+ */
+export function getQuickAmounts(balance: number, count = 4): number[] {
+  if (!Number.isFinite(balance) || balance <= 0) return [];
+  const valid = QUICK_AMOUNT_TIERS.filter((tier) => tier <= balance);
+  return valid.slice(-count);
 }
 
 export interface TransactionGroup {

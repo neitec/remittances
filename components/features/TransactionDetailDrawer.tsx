@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Transaction, TransactionType } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { useMe } from "@/lib/hooks/queries/useMe";
 import { useState } from "react";
 
@@ -15,15 +16,6 @@ interface TransactionDetailDrawerProps {
 function getInitials(name?: string, surname?: string): string {
   if (!name || !surname) return "??";
   return `${name[0]}${surname[0]}`.toUpperCase();
-}
-
-function getCountryEmoji(country?: string): string {
-  if (!country || country.length !== 2) return "🌍";
-  const codePoints = country
-    .toUpperCase()
-    .split("")
-    .map((char) => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
 }
 
 export function TransactionDetailDrawer({
@@ -223,8 +215,9 @@ export function TransactionDetailDrawer({
                       </div>
 
                       {contact.country && (
-                        <p className="text-xs text-[var(--color-on-surface-variant)] mt-2">
-                          {getCountryEmoji(contact.country)} {contact.country}
+                        <p className="text-xs text-[var(--color-on-surface-variant)] mt-2 flex items-center gap-1.5">
+                          <CountryFlag country={contact.country} className="w-[16px] h-[12px] rounded-[2px] ring-1 ring-black/5 flex-shrink-0" />
+                          {contact.country}
                         </p>
                       )}
                     </div>

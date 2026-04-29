@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Transaction, TransactionType } from "@/lib/types";
 import { formatCurrency, formatRelativeDate, getInitials } from "@/lib/format";
@@ -62,17 +61,18 @@ export function TransactionRow({
 
   if (variant === "compact") {
     return (
-      <motion.div
+      <motion.button
+        type="button"
+        onClick={onClick}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.38, delay: animationDelay, ease: [0.16, 1, 0.3, 1] }}
+        className={cn(
+          "w-full text-left flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors",
+          "hover:bg-[rgba(0,62,199,0.05)]",
+          !isLast && "border-b border-[var(--color-outline-variant)]/12"
+        )}
       >
-        <Link href={`/transactions?detail=${txn.id}`}>
-          <div className={cn(
-            "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors",
-            "hover:bg-[rgba(0,62,199,0.05)]",
-            !isLast && "border-b border-[var(--color-outline-variant)]/12"
-          )}>
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className={cn("w-10 h-10 rounded-[13px] flex items-center justify-center", avatarBg)}>
@@ -115,9 +115,7 @@ export function TransactionRow({
                 </span>
               </div>
             </div>
-          </div>
-        </Link>
-      </motion.div>
+      </motion.button>
     );
   }
 

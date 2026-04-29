@@ -36,7 +36,14 @@ apiClient.interceptors.response.use(
     const method = error.config?.method?.toUpperCase() || 'REQUEST';
     const url = error.config?.url || 'unknown';
 
-    logger.apiError(method, url, status || 0, errorMessage);
+    // 404s on these endpoints are normal UX flow (search-as-you-type, optional rates).
+    const isExpected404 =
+      status === 404 &&
+      (url.includes('/remittance/users') || url.includes('/remittance/fx'));
+
+    if (!isExpected404) {
+      logger.apiError(method, url, status || 0, errorMessage);
+    }
 
     if (status === 401) {
       logger.warn('API', '401 Unauthorized - redirecting to login');
@@ -48,14 +55,9 @@ apiClient.interceptors.response.use(
         }, 100);
       }
     } else if (status === 409) {
-      // Conflict - e.g., alias already taken
       logger.warn('API', 'Conflict (409)', { message: errorMessage });
-    } else if (status === 404) {
-      // Not found - only log for non-optional endpoints
-      const isFxEndpoint = url?.includes('/remittance/fx');
-      if (!isFxEndpoint) {
-        logger.warn('API', 'Not found (404)', { message: errorMessage });
-      }
+    } else if (status === 404 && !isExpected404) {
+      logger.warn('API', 'Not found (404)', { message: errorMessage });
     }
 
     return Promise.reject(error);

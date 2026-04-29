@@ -2,13 +2,17 @@ import { apiClient } from '@/lib/api/client';
 import { Beneficiary, TransferRequest, TransferResult } from '@/lib/types';
 
 export const transfersEndpoint = {
-  searchBeneficiary: async (phone: string): Promise<Beneficiary> => {
+  searchBeneficiaryByPhone: async (phone: string): Promise<Beneficiary> => {
     const response = await apiClient.get(`/remittance/users?phone=${encodeURIComponent(phone)}`);
     return response.data;
   },
 
+  searchBeneficiaryByAlias: async (alias: string): Promise<Beneficiary> => {
+    const response = await apiClient.get(`/remittance/users?alias=${encodeURIComponent(alias)}`);
+    return response.data;
+  },
+
   send: async (data: TransferRequest): Promise<TransferResult> => {
-    // Validate amount is a valid number
     const amountNum = parseFloat(data.amount);
     if (isNaN(amountNum) || amountNum <= 0) {
       throw new Error('Monto inválido: debe ser un número mayor que 0');
@@ -16,7 +20,7 @@ export const transfersEndpoint = {
 
     const payload = {
       amount: data.amount,
-      beneficiaryPhone: data.beneficiaryPhone,
+      ...(data.beneficiaryPhone && { beneficiaryPhone: data.beneficiaryPhone }),
       ...(data.userAlias && { userAlias: data.userAlias }),
       ...(data.reference && { reference: data.reference }),
     };

@@ -9,7 +9,9 @@ import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
+
+const isAmountStepEnabled = process.env.NEXT_PUBLIC_DEPOSIT_AMOUNT_ENABLED === 'true';
 
 const NETWORKS = [
   { id: "eth",  label: "Ethereum", badge: "ERC-20", color: "#627eea", address: "0x3Fa4B0Yb7cD1eA2F9d8C5E6a1b4D7f3C2e0A8b9" },
@@ -38,7 +40,8 @@ export default function DepositPage() {
   const [selectedCoin, setSelectedCoin] = useState(COINS[0]);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
-  const { mutate: initiateDeposit, data: depositInstruction } = useDeposit();
+  const [amount, setAmount] = useState<string>("");
+  const { mutate: initiateDeposit, data: depositInstruction, isPending: isInitiating } = useDeposit();
 
   const goToStep = (newStep: Step, dir: number = 1) => {
     setDirection(dir);
@@ -51,8 +54,9 @@ export default function DepositPage() {
       toast.error("Selecciona una cuenta bancaria");
       return;
     }
+    const payloadAmount = isAmountStepEnabled && amount ? amount.replace(",", ".") : "0";
     initiateDeposit(
-      { externalAccountId: id, amount: "0" },
+      { externalAccountId: id, amount: payloadAmount },
       {
         onSuccess: () => goToStep(4),
         onError: (err) => toast.error(err.message),
@@ -60,7 +64,31 @@ export default function DepositPage() {
     );
   };
 
-  const handleNewAccountSaved = (accountId: string) => handleDeposit(accountId);
+  const handleAccountConfirmed = (accountId: string) => {
+    if (!accountId) {
+      toast.error("Selecciona una cuenta bancaria");
+      return;
+    }
+    if (isAmountStepEnabled) {
+      setSelectedAccount(accountId);
+      setAmount("");
+      goToStep(5);
+    } else {
+      handleDeposit(accountId);
+    }
+  };
+
+  const handleAmountConfirm = () => {
+    const cleaned = amount.replace(",", ".").trim();
+    const amountNum = parseFloat(cleaned);
+    if (!cleaned || isNaN(amountNum) || amountNum <= 0) {
+      toast.error("Introduce una cantidad mayor que 0");
+      return;
+    }
+    handleDeposit(selectedAccount);
+  };
+
+  const handleNewAccountSaved = (accountId: string) => handleAccountConfirmed(accountId);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -426,7 +454,7 @@ export default function DepositPage() {
                 selectedAccount={selectedAccount}
                 onSelect={setSelectedAccount}
                 onBack={() => setStep(1)}
-                onContinue={() => handleDeposit()}
+                onContinue={() => handleAccountConfirmed(selectedAccount)}
                 onNewAccountSaved={handleNewAccountSaved}
                 showInlineCreate={true}
               />
@@ -616,6 +644,85 @@ export default function DepositPage() {
                 </div>
               </div>
 
+            </motion.div>
+          )}
+
+          {/* Step 5: Amount input (only when NEXT_PUBLIC_DEPOSIT_AMOUNT_ENABLED=true) */}
+          {step === 5 && (
+            <motion.div
+              key="step5"
+              custom={direction}
+              variants={slideVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.38, ease: [0.25, 0.1, 0.25, 1] }}
+              className="pb-6 max-w-[560px] space-y-5"
+            >
+              <div className="space-y-0.5 pb-1">
+                <h1 className="font-inter font-medium text-[18px] text-[var(--color-on-surface-variant)] leading-tight pt-2">
+                  ¿Cuánto quieres depositar?
+                </h1>
+                <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/50">
+                  Introduce el importe en euros que vas a transferir desde tu banco.
+                </p>
+              </div>
+
+              <div
+                className="rounded-[22px] p-6"
+                style={{
+                  background: "var(--color-surface-container-lowest)",
+                  border: "1px solid rgba(0,62,199,0.10)",
+                  boxShadow: "0 4px 24px rgba(0,62,199,0.05), 0 1px 4px rgba(0,0,0,0.04)",
+                }}
+              >
+                <label
+                  htmlFor="deposit-amount"
+                  className="block text-[10px] font-inter font-semibold uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45 mb-3"
+                >
+                  Cantidad
+                </label>
+                <div className="flex items-center gap-3">
+                  <span className="font-manrope font-extrabold text-[28px] text-[var(--color-on-surface-variant)]/35 leading-none">€</span>
+                  <input
+                    id="deposit-amount"
+                    type="text"
+                    inputMode="decimal"
+                    autoFocus
+                    value={amount}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[^\d.,]/g, "");
+                      setAmount(v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAmountConfirm();
+                    }}
+                    placeholder="0,00"
+                    className="flex-1 bg-transparent font-manrope font-extrabold text-[34px] text-[var(--color-on-surface)] outline-none placeholder:text-[var(--color-on-surface-variant)]/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => goToStep(2, -1)}
+                  className="flex-1 py-3 rounded-[14px] font-inter font-semibold text-[13px] text-[var(--color-on-surface-variant)] cursor-pointer transition-colors hover:bg-[rgba(0,0,0,0.04)]"
+                  style={{ border: "1px solid rgba(0,0,0,0.08)" }}
+                >
+                  Atrás
+                </button>
+                <button
+                  onClick={handleAmountConfirm}
+                  disabled={isInitiating}
+                  className="flex-1 py-3 rounded-[14px] font-inter font-bold text-[13px] text-white cursor-pointer transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{
+                    background: "linear-gradient(135deg, #003ec7 0%, #1252e8 100%)",
+                    boxShadow: "0 4px 12px rgba(0,62,199,0.20)",
+                  }}
+                >
+                  {isInitiating ? "Generando..." : "Continuar"}
+                </button>
+              </div>
             </motion.div>
           )}
 
