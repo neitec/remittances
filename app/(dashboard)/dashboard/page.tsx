@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAccounts } from "@/lib/hooks/queries/useAccounts";
 import { useMe } from "@/lib/hooks/queries/useMe";
 import { DashboardSkeleton, SkeletonTransactionRow } from "@/components/motion/ShimmerSkeleton";
@@ -11,6 +12,7 @@ import { AppHeader } from "@/components/nav/AppHeader";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
 import { TransactionRow } from "@/components/features/Transactions/TransactionRow";
+import { TransactionDetailModal } from "@/components/features/TransactionDetailModal";
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -19,9 +21,15 @@ const fadeUp = (delay = 0) => ({
 });
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: dashboardData, isLoading } = useAccounts();
   const { data: transactionsData } = useTransactions();
   const { data: me } = useMe();
+
+  const detailId = searchParams.get("detail");
+  const allTxnsForDetail = transactionsData?.pages?.flatMap((p) => p.transactions) ?? [];
+  const detailTxn = detailId ? allTxnsForDetail.find((t) => t.id === detailId) : null;
 
   if (isLoading) {
     return (
@@ -262,7 +270,7 @@ export default function DashboardPage() {
                       txn={txn}
                       currentUserId={me?.id}
                       currentUserEmail={me?.email}
-                      onClick={() => {}}
+                      onClick={() => router.push(`/dashboard?detail=${txn.id}`)}
                       isLast={idx === lastTransactions.length - 1}
                       variant="compact"
                       animationDelay={0.22 + idx * 0.055}
@@ -295,6 +303,11 @@ export default function DashboardPage() {
         </div>
         </div>
       </main>
+
+      <TransactionDetailModal
+        transaction={detailTxn || null}
+        onClose={() => router.replace("/dashboard")}
+      />
     </div>
   );
 }

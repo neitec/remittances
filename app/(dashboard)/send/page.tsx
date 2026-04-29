@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { isAxiosError } from "axios";
+import { useDebouncedCallback } from "@/lib/hooks/useDebouncedCallback";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@/components/ui/Icon";
 import { SlideToAction } from "@/components/ui/SlideToAction";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { useBeneficiary } from "@/lib/hooks/mutations/useBeneficiary";
+import { useBeneficiaryByPhone, useBeneficiaryByAlias } from "@/lib/hooks/mutations/useBeneficiary";
 import { useSendMoney } from "@/lib/hooks/mutations/useSendMoney";
 import { useExternalAccounts } from "@/lib/hooks/queries/useExternalAccounts";
 import { useMe } from "@/lib/hooks/queries/useMe";
@@ -13,7 +15,18 @@ import { ExternalAccountSelector } from "@/components/features/ExternalAccountSe
 import { toast } from "sonner";
 import { useAccounts } from "@/lib/hooks/queries/useAccounts";
 import { useTransactions } from "@/lib/hooks/queries/useTransactions";
-import { formatCurrency, maskIBAN, getInitials } from "@/lib/format";
+import { formatCurrency, maskIBAN, getInitials, getQuickAmounts } from "@/lib/format";
+import {
+  PhoneCountry,
+  PHONE_COUNTRIES,
+  PHONE_COUNTRY_LIST,
+  sanitizePhoneInput,
+  formatPhoneDisplay,
+  isPhoneComplete,
+  getFullPhoneNumber,
+  parseFullPhone,
+} from "@/lib/phone";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ExternalAccount, User } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/nav/AppHeader";
@@ -37,6 +50,27 @@ const SEND_COINS = [
 
 type ActiveField = "phone" | "alias" | null;
 
+const slideVariants = {
+  initial: (dir: number) => ({ x: dir * 50, opacity: 0, scale: 0.985 }),
+  animate: { x: 0, opacity: 1, scale: 1 },
+  exit: (dir: number) => ({ x: dir * -50, opacity: 0, scale: 0.985 }),
+};
+
+const StepDots = ({ current }: { current: 1 | 2 | 3 }) => (
+  <div className="flex items-center gap-1.5">
+    {[1, 2, 3].map((n) => (
+      <span
+        key={n}
+        className="h-1.5 rounded-full transition-all duration-300"
+        style={{
+          width: n === current ? 18 : 6,
+          background: n === current ? "var(--color-primary)" : "rgba(0,0,0,0.12)",
+        }}
+      />
+    ))}
+  </div>
+);
+
 export default function SendPage() {
   const router = useRouter();
   const { data: dashboardData, isLoading: isAccountsLoading } = useAccounts();
@@ -44,26 +78,77 @@ export default function SendPage() {
   const { data: transactionsData } = useTransactions({ type: "TRANSFER" });
   const { data: me } = useMe();
   const [step, setStep] = useState<Step>(1);
+  const [direction, setDirection] = useState(1);
   const [sendMode, setSendMode] = useState<SendMode>("user");
+
+  const goToStep = (newStep: Step, dir: number = 1) => {
+    setDirection(dir);
+    setStep(newStep);
+  };
+
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>("");
   const [scCoin, setScCoin] = useState(SEND_COINS[0]);
   const [scNetwork, setScNetwork] = useState(SEND_NETWORKS[0]);
   const [scAddress, setScAddress] = useState("");
   const [scAmount, setScAmount] = useState("");
   const [selectedAccountData, setSelectedAccountData] = useState<ExternalAccount | null>(null);
-  const [countryCode, setCountryCode] = useState("+34");
+  const [country, setCountry] = useState<PhoneCountry>("ES");
   const [phone, setPhone] = useState("");
   const [alias, setAlias] = useState("");
+  const [inputMode, setInputMode] = useState<"phone" | "alias">("phone");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [showMessage, setShowMessage] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [beneficiaryError, setBeneficiaryError] = useState("");
+  const [notFoundField, setNotFoundField] = useState<ActiveField>(null);
   const [activeField, setActiveField] = useState<ActiveField>(null);
   const [submitted, setSubmitted] = useState(false);
-  const { mutate: searchBeneficiary, data: beneficiary, isPending: isSearching } =
-    useBeneficiary();
+  const { mutate: searchBeneficiaryByPhone, data: phoneBeneficiary, reset: resetPhoneSearch } =
+    useBeneficiaryByPhone();
+  const { mutate: searchBeneficiaryByAlias, data: aliasBeneficiary, reset: resetAliasSearch } =
+    useBeneficiaryByAlias();
   const { mutate: sendMoney, isPending: isSending } = useSendMoney();
+
+  const beneficiary =
+    activeField === "phone" ? phoneBeneficiary : activeField === "alias" ? aliasBeneficiary : undefined;
+  const isSelfBeneficiary = !!(beneficiary && me && beneficiary.id === me.id);
+  const ALIAS_REGEX = /^[a-zA-Z0-9._-]{3,30}$/;
+  const SEARCH_DEBOUNCE_MS = 350;
+
+  const handleSearchError = (
+    err: unknown,
+    field: "phone" | "alias",
+    resetMutation: () => void
+  ) => {
+    resetMutation();
+    if (isAxiosError(err) && err.response?.status === 404) {
+      setNotFoundField(field);
+      setBeneficiaryError("");
+    } else {
+      setNotFoundField(null);
+      setBeneficiaryError(err instanceof Error ? err.message : "Error en la búsqueda");
+    }
+  };
+
+  const handleSearchSuccess = () => {
+    setBeneficiaryError("");
+    setNotFoundField(null);
+  };
+
+  const phoneSearch = useDebouncedCallback((fullPhone: string) => {
+    searchBeneficiaryByPhone(fullPhone, {
+      onError: (err) => handleSearchError(err, "phone", resetPhoneSearch),
+      onSuccess: handleSearchSuccess,
+    });
+  }, SEARCH_DEBOUNCE_MS);
+
+  const aliasSearch = useDebouncedCallback((aliasValue: string) => {
+    searchBeneficiaryByAlias(aliasValue, {
+      onError: (err) => handleSearchError(err, "alias", resetAliasSearch),
+      onSuccess: handleSearchSuccess,
+    });
+  }, SEARCH_DEBOUNCE_MS);
 
   const totalBalance = dashboardData?.totalBalance ?? 0;
   const hasBalance = totalBalance > 0;
@@ -90,50 +175,100 @@ export default function SendPage() {
   })();
 
   const selectFrequentContact = (contact: User) => {
-    const fullPhone = contact.phone ?? "";
-    let code = "+34";
-    let local = fullPhone;
-    if (fullPhone.startsWith("+1-829")) {
-      code = "+1-829";
-      local = fullPhone.slice(6);
-    } else if (fullPhone.startsWith("+34")) {
-      code = "+34";
-      local = fullPhone.slice(3);
-    }
-    local = local.replace(/\D/g, "").slice(0, 9);
-    setCountryCode(code);
+    const parsed = parseFullPhone(contact.phone ?? "");
+    const nextCountry: PhoneCountry = parsed?.country ?? "ES";
+    const local = parsed ? sanitizePhoneInput(parsed.digits, nextCountry) : "";
+    setInputMode("phone");
+    setCountry(nextCountry);
     setPhone(local);
+    setAlias("");
+    resetAliasSearch();
     setActiveField(local ? "phone" : null);
     setBeneficiaryError("");
-    if (local.length === 9) {
-      searchBeneficiary(code + local, {
-        onError: (err) => setBeneficiaryError(err instanceof Error ? err.message : "Contacto no encontrado"),
-        onSuccess: () => setBeneficiaryError(""),
-      });
+    setNotFoundField(null);
+    aliasSearch.cancel();
+    if (isPhoneComplete(local, nextCountry)) {
+      phoneSearch.trigger(getFullPhoneNumber(local, nextCountry));
+      goToStep(3, 1);
+    } else {
+      phoneSearch.cancel();
+      resetPhoneSearch();
     }
   };
 
-  const QUICK_AMOUNTS = [50, 100, 200, 500];
+  const quickAmounts = getQuickAmounts(totalBalance);
 
-  // Handle phone change - search beneficiary when phone is complete
+  // Handle phone change - debounced search when complete
   const handlePhoneChange = (value: string) => {
-    if (alias) return;
-    const digitsOnly = value.replace(/\D/g, "").slice(0, 9);
+    // Switch from alias → phone: clear pending alias search + alias state
+    aliasSearch.cancel();
+    if (alias) setAlias("");
+    resetAliasSearch();
+
+    const digitsOnly = sanitizePhoneInput(value, country);
     setPhone(digitsOnly);
     setActiveField(digitsOnly ? "phone" : null);
     setBeneficiaryError("");
-    if (digitsOnly.length === 9) {
-      const fullPhone = countryCode + digitsOnly;
-      searchBeneficiary(fullPhone, {
-        onError: (error) => {
-          const errorMsg = error instanceof Error ? error.message : "Contacto no encontrado";
-          setBeneficiaryError(errorMsg);
-        },
-        onSuccess: () => {
-          setBeneficiaryError("");
-        },
-      });
+    setNotFoundField(null);
+
+    if (isPhoneComplete(digitsOnly, country)) {
+      phoneSearch.trigger(getFullPhoneNumber(digitsOnly, country));
+    } else {
+      phoneSearch.cancel();
+      resetPhoneSearch();
     }
+  };
+
+  const handleCountryChange = (next: PhoneCountry) => {
+    if (next === country) return;
+    setCountry(next);
+    const truncated = sanitizePhoneInput(phone, next);
+    setPhone(truncated);
+    setBeneficiaryError("");
+    setNotFoundField(null);
+    if (isPhoneComplete(truncated, next)) {
+      phoneSearch.trigger(getFullPhoneNumber(truncated, next));
+    } else {
+      phoneSearch.cancel();
+      resetPhoneSearch();
+    }
+  };
+
+  // Handle alias change - debounced search when valid
+  const handleAliasChange = (value: string) => {
+    // Switch from phone → alias: clear pending phone search + phone state
+    phoneSearch.cancel();
+    if (phone) setPhone("");
+    resetPhoneSearch();
+
+    const sanitized = value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 30);
+    setAlias(sanitized);
+    setActiveField(sanitized ? "alias" : null);
+    setBeneficiaryError("");
+    setNotFoundField(null);
+
+    if (ALIAS_REGEX.test(sanitized)) {
+      aliasSearch.trigger(sanitized);
+    } else {
+      aliasSearch.cancel();
+      resetAliasSearch();
+    }
+  };
+
+  const switchInputMode = (mode: "phone" | "alias") => {
+    if (mode === "phone") {
+      aliasSearch.cancel();
+      setAlias("");
+      resetAliasSearch();
+    } else {
+      phoneSearch.cancel();
+      setPhone("");
+      resetPhoneSearch();
+    }
+    setActiveField(null);
+    setBeneficiaryError("");
+    setNotFoundField(null);
+    setInputMode(mode);
   };
 
   const handleSendConfirm = () => {
@@ -144,15 +279,14 @@ export default function SendPage() {
 
     // For user-to-user transfer
     if (sendMode === "user" && beneficiary) {
-      const amountNum = parseFloat(amount.replace(",", "."));
-      const fullPhone = phone ? countryCode + phone : null;
-
-      if (!fullPhone) {
-        setErrorMessage("Número de teléfono inválido");
+      if (isSelfBeneficiary) {
+        setErrorMessage("No puedes enviarte dinero a ti mismo");
         setStep("error");
         setSubmitted(false);
         return;
       }
+
+      const amountNum = parseFloat(amount.replace(",", "."));
 
       if (isNaN(amountNum) || amountNum <= 0) {
         setErrorMessage("Monto inválido");
@@ -161,11 +295,22 @@ export default function SendPage() {
         return;
       }
 
+      const transferRequest =
+        activeField === "alias"
+          ? { userAlias: alias }
+          : { beneficiaryPhone: getFullPhoneNumber(phone, country) };
+
+      if (!transferRequest.userAlias && !transferRequest.beneficiaryPhone) {
+        setErrorMessage("Destinatario inválido");
+        setStep("error");
+        setSubmitted(false);
+        return;
+      }
+
       sendMoney(
         {
-          beneficiaryPhone: fullPhone,
+          ...transferRequest,
           amount: amountNum.toString(),
-          userAlias: alias || undefined,
           reference: message || undefined,
         },
         {
@@ -253,7 +398,7 @@ export default function SendPage() {
               <>
                 <div>
                   <button
-                    onClick={() => setStep(1)}
+                    onClick={() => goToStep(1, -1)}
                     className="text-[11px] font-inter font-semibold uppercase tracking-[0.2em] text-[var(--color-on-surface-variant)]/50 transition-colors hover:text-[var(--color-primary)]/70 cursor-pointer"
                   >
                     TRANSFIERE
@@ -300,7 +445,21 @@ export default function SendPage() {
 
               {/* TR1: Internal — Remita user (same style as EUR deposit card) */}
               <motion.button
-                onClick={() => { setSendMode("user"); setStep(2); setPhone(""); setAmount(""); }}
+                onClick={() => {
+                  setSendMode("user");
+                  setInputMode("phone");
+                  setPhone("");
+                  setAlias("");
+                  setActiveField(null);
+                  setAmount("");
+                  setMessage("");
+                  setShowMessage(false);
+                  setBeneficiaryError("");
+                  setNotFoundField(null);
+                  resetPhoneSearch();
+                  resetAliasSearch();
+                  goToStep(2, 1);
+                }}
                 initial="rest"
                 whileHover="hover"
                 whileTap={{ scale: 0.99 }}
@@ -373,7 +532,7 @@ export default function SendPage() {
 
               {/* TR2: Stablecoin on-chain transfer */}
               <motion.button
-                onClick={() => { setSendMode("stablecoin"); setStep(2); setScAddress(""); setScAmount(""); }}
+                onClick={() => { setSendMode("stablecoin"); setScAddress(""); setScAmount(""); goToStep(2, 1); }}
                 initial="rest"
                 whileHover="hover"
                 whileTap={{ scale: 0.99 }}
@@ -503,6 +662,59 @@ export default function SendPage() {
             </motion.div>
           )}
 
+          {/* No-balance empty state — prevents blank screen when user navigates past step 1 with 0 balance */}
+          {typeof step === "number" && step >= 2 && !hasBalance && (
+            <motion.div
+              key="no-balance"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+              className="max-w-[560px] mx-auto pt-8 pb-20"
+            >
+              <div
+                className="rounded-[22px] p-8 text-center"
+                style={{
+                  background: "var(--color-surface-container-lowest)",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+                }}
+              >
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ background: "rgba(0,62,199,0.08)" }}
+                >
+                  <Icon name="account_balance_wallet" size={26} className="text-[var(--color-primary)]" />
+                </div>
+                <h2 className="font-manrope font-extrabold text-[18px] text-[var(--color-on-surface)] mb-2">
+                  Aún no tienes fondos
+                </h2>
+                <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/70 leading-relaxed mb-6">
+                  Necesitas saldo en tu wallet para transferir. Deposita euros vía SEPA o recibe stablecoins on-chain en segundos.
+                </p>
+                <div className="flex items-center gap-3 justify-center">
+                  <button
+                    onClick={() => goToStep(1, -1)}
+                    className="px-5 py-2.5 rounded-[12px] font-inter font-semibold text-[13px] text-[var(--color-on-surface-variant)] cursor-pointer transition-colors hover:bg-[rgba(0,0,0,0.04)]"
+                    style={{ border: "1px solid rgba(0,0,0,0.08)" }}
+                  >
+                    Volver
+                  </button>
+                  <button
+                    onClick={() => router.push("/deposit")}
+                    className="px-5 py-2.5 rounded-[12px] font-inter font-bold text-[13px] text-white cursor-pointer transition-opacity hover:opacity-90"
+                    style={{
+                      background: "linear-gradient(135deg, #003ec7 0%, #1252e8 100%)",
+                      boxShadow: "0 4px 12px rgba(0,62,199,0.20)",
+                    }}
+                  >
+                    Depositar fondos
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Step 2: Bank account selection (bank mode) */}
           {hasBalance && step === 2 && sendMode === "bank" && (
             <motion.div
@@ -516,7 +728,7 @@ export default function SendPage() {
                 selectedAccount={selectedBankAccount}
                 onSelect={setSelectedBankAccount}
                 onSelectFull={setSelectedAccountData}
-                onBack={() => setStep(1)}
+                onBack={() => goToStep(1, -1)}
                 onContinue={() => {
                   if (!selectedBankAccount) {
                     toast.error("Selecciona una cuenta bancaria");
@@ -530,7 +742,7 @@ export default function SendPage() {
                       setSelectedAccountData(accountData);
                     }
                   }
-                  setStep(3);
+                  goToStep(3, 1);
                 }}
                 showInlineCreate={true}
               />
@@ -696,7 +908,7 @@ export default function SendPage() {
           {/* Step 2+: User mode */}
           {hasBalance && typeof step === "number" && step >= 2 && step <= 4 && sendMode === "user" && (
             <motion.div
-              key="step-user"
+              key="step-user-shell"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -16 }}
@@ -705,310 +917,656 @@ export default function SendPage() {
             >
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] lg:gap-8 lg:items-start">
 
-                {/* ══ LEFT: Main transfer flow ══ */}
-                <div className="space-y-1.5 mb-8 lg:mb-0">
+                {/* ══ LEFT: Substep content with slide animation ══ */}
+                <div className="mb-8 lg:mb-0 min-w-0">
 
-                  {/* ── Card 1: Destinatario ── */}
-                  <div
-                    className="rounded-[20px] overflow-hidden"
-                    style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
-                  >
-                    <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Destinatario</p>
-                    </div>
-                    <div className="px-4 py-3 space-y-2.5">
-                      <div className="flex gap-2">
-                        <div className="relative flex-shrink-0">
-                          <select
-                            value={countryCode}
-                            onChange={(e) => setCountryCode(e.target.value)}
-                            className="appearance-none h-10 pl-3 pr-6 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] font-medium border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors"
-                            style={{ background: "var(--color-surface-container-lowest)" }}
-                          >
-                            <option value="+34">🇪🇸  +34</option>
-                            <option value="+1-829">🇩🇴  +1-829</option>
-                          </select>
-                          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 opacity-35" width="9" height="9" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
-                        <input
-                          type="tel"
-                          placeholder="Número de teléfono"
-                          value={phone.replace(/(\d{3})(?=\d)/g, "$1 ")}
-                          onChange={(e) => handlePhoneChange(e.target.value)}
-                          disabled={isSearching || activeField === "alias"}
-                          maxLength={12}
-                          className={`flex-1 h-10 px-4 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/35 ${
-                            activeField === "alias" ? "opacity-40 pointer-events-none border-[var(--color-outline-variant)]/30" : "border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)]"
-                          }`}
-                          style={{ background: "var(--color-surface-container-lowest)" }}
-                        />
-                      </div>
-                      {beneficiaryError && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-1.5 text-[11px] font-inter text-[var(--color-error)] px-1"
-                        >
-                          <Icon name="error_outline" size={13} />
-                          {beneficiaryError}
-                        </motion.p>
-                      )}
-                      {beneficiary && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[12px]"
-                          style={{ background: "rgba(0,62,199,0.05)", border: "1px solid rgba(0,62,199,0.12)" }}
-                        >
-                          <div className="w-7 h-7 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0 font-manrope font-bold text-white text-[12px]">
-                            {beneficiary.name?.[0] ?? "?"}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-manrope font-bold text-[var(--color-on-surface)] text-[13px] truncate">{beneficiary.name}</p>
-                            <p className="text-[10px] text-[var(--color-on-surface-variant)]/50 font-inter">Usuario de Remita GCS</p>
-                          </div>
-                          <Icon name="check_circle" size={15} className="text-[var(--color-success-text)] flex-shrink-0" filled />
-                        </motion.div>
-                      )}
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.08)" }} />
-                        <span className="text-[9.5px] font-inter font-bold uppercase tracking-[0.16em]" style={{ color: "rgba(0,0,0,0.25)" }}>O también</span>
-                        <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.08)" }} />
-                      </div>
-                      <div
-                        className="flex items-center gap-2.5 h-10 px-3.5 rounded-[12px] border opacity-50 pointer-events-none border-[rgba(0,0,0,0.05)]"
-                        style={{ background: "var(--color-surface-container-lowest)" }}
-                      >
-                        <span className="font-manrope font-bold text-[15px] leading-none text-[var(--color-on-surface-variant)]/35">@</span>
-                        <input
-                          type="text"
-                          placeholder="Alias de Remita GCS"
-                          disabled
-                          className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter text-[13px] outline-none placeholder:text-[var(--color-on-surface-variant)]/35"
-                        />
-                        <span className="text-[9px] font-inter font-bold uppercase tracking-[0.1em] px-2 py-1 rounded-full" style={{ background: "rgba(188,72,0,0.12)", color: "#bc4800" }}>Pronto</span>
-                      </div>
-                    </div>
+                  {/* Top bar: back arrow + step dots */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => goToStep((step - 1) as Step, -1)}
+                      className="flex items-center gap-1.5 -ml-1.5 px-2 py-1.5 rounded-[10px] text-[var(--color-on-surface-variant)]/55 hover:text-[var(--color-on-surface)] hover:bg-[rgba(0,0,0,0.04)] transition-colors cursor-pointer"
+                    >
+                      <Icon name="arrow_back" size={16} />
+                      <span className="font-inter text-[12px] font-medium">Atrás</span>
+                    </button>
+                    <StepDots current={(step - 1) as 1 | 2 | 3} />
                   </div>
 
-                  {/* ── Card 2: Monto ── */}
-                  <div
-                    className="rounded-[20px] overflow-hidden relative"
-                    style={{
-                      background: "linear-gradient(160deg, #f5f7ff 0%, #ffffff 55%)",
-                      border: "1px solid rgba(0,62,199,0.10)",
-                      boxShadow: "0 3px 16px rgba(0,62,199,0.07), 0 1px 3px rgba(0,0,0,0.03)"
-                    }}
-                  >
-                    <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,62,199,0.06) 0%, transparent 70%)" }} />
-                    <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(0,62,199,0.07)" }}>
-                      <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Monto a transferir</p>
-                    </div>
-                    <div className="relative px-4 pb-3 space-y-2">
-                      <div className="flex items-baseline justify-center gap-1 pt-1">
-                        <span className="text-[20px] font-manrope font-bold" style={{ color: "var(--color-primary)" }}>€</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="0,00"
-                          value={amount}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(",", ".");
-                            if (!val || /^\d*\.?\d*$/.test(val)) setAmount(val);
-                          }}
-                          disabled={isSending}
-                          className="text-[40px] font-manrope font-bold text-center text-[var(--color-on-surface)] border-0 bg-transparent outline-none placeholder:text-[var(--color-on-surface-variant)]/15 w-[150px]"
-                        />
-                      </div>
-                      <div className="flex justify-center">
+                  <AnimatePresence mode="wait" custom={direction}>
+
+                    {/* ─── Step 2: Destinatario ─── */}
+                    {step === 2 && (
+                      <motion.div
+                        key="user-step-recipient"
+                        custom={direction}
+                        variants={slideVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={{ duration: 0.26, ease: [0.25, 0.1, 0.25, 1] }}
+                        className="space-y-4"
+                      >
+                        {/* Title */}
+                        <div className="space-y-1">
+                          <h1 className="font-manrope font-bold text-[24px] text-[var(--color-on-surface)] leading-tight">
+                            ¿A quién envías?
+                          </h1>
+                          <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/55">
+                            Introduce el {inputMode === "phone" ? "teléfono" : "alias"} del destinatario.
+                          </p>
+                        </div>
+
+                        {/* Card Destinatario — héroe */}
                         <div
-                          className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full"
-                          style={{ background: "rgba(0,62,199,0.06)", border: "1px solid rgba(0,62,199,0.10)" }}
+                          className="rounded-[20px] overflow-hidden"
+                          style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
                         >
-                          <Icon name="account_balance_wallet" size={11} className="text-[var(--color-primary)]" />
-                          <span className="font-inter text-[11px]" style={{ color: "var(--color-primary)" }}>
-                            Disponible: <strong>{formatCurrency(totalBalance)}</strong>
-                          </span>
+                          <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                            <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Destinatario</p>
+                          </div>
+                          <div className="px-4 py-3 space-y-2.5">
+                            <AnimatePresence mode="wait">
+                              {inputMode === "phone" ? (
+                                <motion.div
+                                  key="phone-input"
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: 4 }}
+                                  transition={{ duration: 0.18 }}
+                                  className="flex gap-2"
+                                >
+                                  <div className="relative flex-shrink-0">
+                                    <div
+                                      className="flex items-center gap-2 h-10 pl-2.5 pr-7 rounded-[12px] border border-[var(--color-outline-variant)]/50 focus-within:border-[var(--color-primary)] transition-colors"
+                                      style={{ background: "var(--color-surface-container-lowest)" }}
+                                    >
+                                      <CountryFlag country={country} className="w-[18px] h-[13px] rounded-[2px] flex-shrink-0 ring-1 ring-black/5" />
+                                      <span className="font-inter text-[13px] font-medium text-[var(--color-on-surface)]">
+                                        {PHONE_COUNTRIES[country].dialPrefix}
+                                      </span>
+                                    </div>
+                                    <select
+                                      value={country}
+                                      onChange={(e) => handleCountryChange(e.target.value as PhoneCountry)}
+                                      aria-label="Código de país"
+                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                    >
+                                      {PHONE_COUNTRY_LIST.map((cfg) => (
+                                        <option key={cfg.code} value={cfg.code}>
+                                          {cfg.label} ({cfg.dialPrefix})
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 opacity-35" width="9" height="9" viewBox="0 0 24 24" fill="none">
+                                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </div>
+                                  <input
+                                    type="tel"
+                                    placeholder={PHONE_COUNTRIES[country].placeholder}
+                                    autoFocus
+                                    value={formatPhoneDisplay(phone, country)}
+                                    onChange={(e) => handlePhoneChange(e.target.value)}
+                                    maxLength={PHONE_COUNTRIES[country].maxDigits + PHONE_COUNTRIES[country].groupSizes.length - 1}
+                                    className="flex-1 h-10 px-4 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border border-[var(--color-outline-variant)]/50 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/35"
+                                    style={{ background: "var(--color-surface-container-lowest)" }}
+                                  />
+                                </motion.div>
+                              ) : (
+                                <motion.div
+                                  key="alias-input"
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: 4 }}
+                                  transition={{ duration: 0.18 }}
+                                  className="flex items-center gap-2.5 h-10 px-3.5 rounded-[12px] border border-[var(--color-outline-variant)]/50 focus-within:border-[var(--color-primary)] transition-colors"
+                                  style={{ background: "var(--color-surface-container-lowest)" }}
+                                >
+                                  <span className="font-manrope font-bold text-[15px] leading-none text-[var(--color-on-surface-variant)]/55">@</span>
+                                  <input
+                                    type="text"
+                                    placeholder="Alias de Remita GCS"
+                                    autoFocus
+                                    value={alias}
+                                    onChange={(e) => handleAliasChange(e.target.value)}
+                                    maxLength={30}
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck={false}
+                                    className="flex-1 bg-transparent text-[var(--color-on-surface)] font-inter text-[13px] outline-none placeholder:text-[var(--color-on-surface-variant)]/35"
+                                  />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            {beneficiaryError && (
+                              <motion.p
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-1.5 text-[11px] font-inter text-[var(--color-error)] px-1"
+                              >
+                                <Icon name="error_outline" size={13} />
+                                {beneficiaryError}
+                              </motion.p>
+                            )}
+                            {!beneficiaryError && notFoundField && !beneficiary && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-[12px]"
+                                style={{ background: "rgba(0,0,0,0.025)", border: "1px dashed rgba(0,0,0,0.10)" }}
+                              >
+                                <div
+                                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                                  style={{ background: "rgba(0,0,0,0.05)" }}
+                                >
+                                  <Icon name="search_off" size={14} className="text-[var(--color-on-surface-variant)]/50" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-inter font-semibold text-[12px] text-[var(--color-on-surface)] leading-tight">
+                                    Sin resultados
+                                  </p>
+                                  <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/55 truncate">
+                                    {notFoundField === "alias"
+                                      ? <>No hay ningún usuario con el alias <span className="font-semibold text-[var(--color-on-surface)]/75">@{alias}</span></>
+                                      : <>No hay ningún usuario con el teléfono <span className="font-semibold text-[var(--color-on-surface)]/75">{PHONE_COUNTRIES[country].dialPrefix} {formatPhoneDisplay(phone, country)}</span></>
+                                    }
+                                  </p>
+                                </div>
+                              </motion.div>
+                            )}
+                            {beneficiary && !isSelfBeneficiary && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-[12px]"
+                                style={{ background: "rgba(0,62,199,0.05)", border: "1px solid rgba(0,62,199,0.12)" }}
+                              >
+                                <div className="w-7 h-7 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0 font-manrope font-bold text-white text-[12px]">
+                                  {beneficiary.name?.[0] ?? "?"}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-manrope font-bold text-[var(--color-on-surface)] text-[13px] truncate">{beneficiary.name}</p>
+                                  <p className="text-[10px] text-[var(--color-on-surface-variant)]/50 font-inter truncate">
+                                    {beneficiary.alias ? `@${beneficiary.alias}` : "Usuario de Remita GCS"}
+                                  </p>
+                                </div>
+                                <Icon name="check_circle" size={15} className="text-[var(--color-success-text)] flex-shrink-0" filled />
+                              </motion.div>
+                            )}
+                            {isSelfBeneficiary && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-[12px]"
+                                style={{ background: "rgba(186,26,26,0.05)", border: "1px solid rgba(186,26,26,0.18)" }}
+                              >
+                                <div
+                                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                                  style={{ background: "rgba(186,26,26,0.10)" }}
+                                >
+                                  <Icon name="block" size={14} className="text-[var(--color-error)]" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-inter font-semibold text-[12px] text-[var(--color-on-surface)] leading-tight">
+                                    Eres tú
+                                  </p>
+                                  <p className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/60 truncate">
+                                    No puedes enviarte dinero a ti mismo. Selecciona otro destinatario.
+                                  </p>
+                                </div>
+                              </motion.div>
+                            )}
+
+                            {/* Toggle: prefer phone/alias */}
+                            <button
+                              onClick={() => switchInputMode(inputMode === "phone" ? "alias" : "phone")}
+                              className="w-full flex items-center justify-center gap-1.5 pt-1 pb-0.5 text-[12px] font-inter text-[var(--color-on-surface-variant)]/55 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+                            >
+                              <Icon name="swap_horiz" size={13} />
+                              Prefiero enviar por {inputMode === "phone" ? "alias" : "teléfono"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-1.5 justify-center">
-                        {QUICK_AMOUNTS.map((q) => (
+
+                        {/* Continuar CTA — primary brand */}
+                        <button
+                          onClick={() => goToStep(3, 1)}
+                          disabled={!beneficiary || isSelfBeneficiary}
+                          className="w-full h-[52px] rounded-[14px] flex items-center justify-center gap-2 text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none cursor-pointer mt-2"
+                          style={{
+                            background: "linear-gradient(135deg, #003ec7 0%, #0052ff 100%)",
+                            boxShadow: "0 6px 16px -4px rgba(0,62,199,0.40), 0 2px 4px rgba(0,62,199,0.18), inset 0 1px 0 rgba(255,255,255,0.18)",
+                          }}
+                        >
+                          <span className="font-inter font-semibold text-[14px] tracking-[0.01em]">Continuar</span>
+                          <Icon name="arrow_forward" size={16} className="opacity-95" />
+                        </button>
+
+                        {/* Frecuentes — secundario, debajo */}
+                        {frequentContacts.length > 0 && (
+                          <div className="pt-3">
+                            <p className="font-inter text-[10px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/40 mb-2.5 px-1">
+                              Contactos frecuentes
+                            </p>
+                            <div className="flex items-start gap-3.5">
+                              {frequentContacts.map((contact, idx) => {
+                                const palette = ["#003ec7", "#bc4800", "#0d9488"];
+                                const color = palette[idx % palette.length];
+                                return (
+                                  <button
+                                    key={contact.id}
+                                    onClick={() => selectFrequentContact(contact)}
+                                    className="flex flex-col items-center gap-1.5 group transition-all cursor-pointer min-w-0"
+                                    style={{ flex: "0 0 auto" }}
+                                  >
+                                    <div
+                                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-manrope font-bold text-[12px] transition-transform group-hover:scale-105 ring-2 ring-transparent group-hover:ring-[var(--color-primary)]/15 opacity-85 group-hover:opacity-100"
+                                      style={{ background: color }}
+                                    >
+                                      {getInitials(contact.name, contact.surname)}
+                                    </div>
+                                    <p className="font-inter text-[10.5px] text-[var(--color-on-surface-variant)]/65 group-hover:text-[var(--color-on-surface)] leading-tight truncate w-[60px] text-center">
+                                      {contact.name}
+                                    </p>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {/* ─── Step 3: Monto + concepto ─── */}
+                    {step === 3 && (
+                      <motion.div
+                        key="user-step-amount"
+                        custom={direction}
+                        variants={slideVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={{ duration: 0.26, ease: [0.25, 0.1, 0.25, 1] }}
+                        className="space-y-4"
+                      >
+                        {/* Title */}
+                        <div className="space-y-1">
+                          <h1 className="font-manrope font-bold text-[24px] text-[var(--color-on-surface)] leading-tight">
+                            ¿Cuánto envías?
+                          </h1>
+                          <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/55">
+                            Introduce el importe y, si quieres, un concepto.
+                          </p>
+                        </div>
+
+                        {/* Recipient context pill */}
+                        {beneficiary && (
                           <button
-                            key={q}
-                            onClick={() => setAmount(String(q))}
-                            disabled={q > totalBalance}
-                            className="px-3.5 py-1 rounded-[10px] font-inter font-bold text-[12px] transition-all"
-                            style={
-                              parseFloat(amount) === q
-                                ? { background: "var(--color-primary)", color: "white", boxShadow: "0 2px 8px rgba(0,62,199,0.25)" }
-                                : q > totalBalance
-                                ? { background: "rgba(0,0,0,0.04)", color: "rgba(0,0,0,0.22)", cursor: "not-allowed" }
-                                : { background: "rgba(0,0,0,0.05)", color: "var(--color-on-surface)" }
-                            }
+                            onClick={() => goToStep(2, -1)}
+                            className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full transition-colors hover:bg-[rgba(0,62,199,0.05)] cursor-pointer group"
+                            style={{ background: "rgba(0,62,199,0.04)", border: "1px solid rgba(0,62,199,0.10)" }}
                           >
-                            {q}€
+                            <div className="w-6 h-6 rounded-full bg-[var(--color-primary)] flex items-center justify-center font-manrope font-bold text-white text-[11px]">
+                              {beneficiary.name?.[0] ?? "?"}
+                            </div>
+                            <span className="font-inter font-semibold text-[12px] text-[var(--color-on-surface)] truncate max-w-[180px]">
+                              {beneficiary.name}
+                            </span>
+                            {beneficiary.alias && (
+                              <span className="text-[11px] font-inter text-[var(--color-on-surface-variant)]/55">
+                                @{beneficiary.alias}
+                              </span>
+                            )}
+                            <Icon name="edit" size={12} className="text-[var(--color-primary)]/60 group-hover:text-[var(--color-primary)]" />
                           </button>
-                        ))}
-                      </div>
-                      {amount && parseFloat(amount.replace(",", ".")) > totalBalance && (
+                        )}
+
+                        {/* Card Monto */}
+                        <div
+                          className="rounded-[20px] overflow-hidden relative"
+                          style={{
+                            background: "linear-gradient(160deg, #f5f7ff 0%, #ffffff 55%)",
+                            border: "1px solid rgba(0,62,199,0.10)",
+                            boxShadow: "0 3px 16px rgba(0,62,199,0.07), 0 1px 3px rgba(0,0,0,0.03)"
+                          }}
+                        >
+                          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,62,199,0.06) 0%, transparent 70%)" }} />
+                          <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(0,62,199,0.07)" }}>
+                            <p className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Monto a transferir</p>
+                          </div>
+                          <div className="relative px-4 pb-3 space-y-2">
+                            <div className="flex items-baseline justify-center gap-1 pt-1">
+                              <span className="text-[20px] font-manrope font-bold" style={{ color: "var(--color-primary)" }}>€</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0,00"
+                                autoFocus
+                                value={amount}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(",", ".");
+                                  if (!val || /^\d*\.?\d*$/.test(val)) setAmount(val);
+                                }}
+                                disabled={isSending}
+                                className="text-[40px] font-manrope font-bold text-center text-[var(--color-on-surface)] border-0 bg-transparent outline-none placeholder:text-[var(--color-on-surface-variant)]/15 w-[150px]"
+                              />
+                            </div>
+                            <div className="flex justify-center">
+                              <div
+                                className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full"
+                                style={{ background: "rgba(0,62,199,0.06)", border: "1px solid rgba(0,62,199,0.10)" }}
+                              >
+                                <Icon name="account_balance_wallet" size={11} className="text-[var(--color-primary)]" />
+                                <span className="font-inter text-[11px]" style={{ color: "var(--color-primary)" }}>
+                                  Disponible: <strong>{formatCurrency(totalBalance)}</strong>
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-1.5 justify-center">
+                              {quickAmounts.map((q) => (
+                                <button
+                                  key={q}
+                                  onClick={() => setAmount(String(q))}
+                                  disabled={q > totalBalance}
+                                  className="px-3.5 py-1 rounded-[10px] font-inter font-bold text-[12px] transition-all"
+                                  style={
+                                    parseFloat(amount) === q
+                                      ? { background: "var(--color-primary)", color: "white", boxShadow: "0 2px 8px rgba(0,62,199,0.25)" }
+                                      : q > totalBalance
+                                      ? { background: "rgba(0,0,0,0.04)", color: "rgba(0,0,0,0.22)", cursor: "not-allowed" }
+                                      : { background: "rgba(0,0,0,0.05)", color: "var(--color-on-surface)" }
+                                  }
+                                >
+                                  {q}€
+                                </button>
+                              ))}
+                            </div>
+                            {amount && parseFloat(amount.replace(",", ".")) > totalBalance && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] bg-[var(--color-error)]/8 border border-[var(--color-error)]/15 text-[var(--color-error)] text-[11.5px] font-inter font-medium"
+                              >
+                                <Icon name="warning" size={14} />
+                                Saldo insuficiente.
+                              </motion.div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Concepto (collapsible) */}
+                        <AnimatePresence mode="wait">
+                          {!showMessage ? (
+                            <motion.button
+                              key="trigger"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              onClick={() => setShowMessage(true)}
+                              className="flex items-center gap-1.5 px-1 py-1 text-[var(--color-on-surface-variant)]/50 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+                            >
+                              <Icon name="add" size={14} />
+                              <span className="font-inter text-[12px]">Añadir concepto <span className="opacity-60">(opcional)</span></span>
+                            </motion.button>
+                          ) : (
+                            <motion.div
+                              key="input"
+                              initial={{ opacity: 0, y: -6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -6 }}
+                              transition={{ duration: 0.18 }}
+                              className="rounded-[16px] overflow-hidden"
+                              style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                            >
+                              <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                                <span className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Concepto</span>
+                                <button
+                                  onClick={() => { setShowMessage(false); setMessage(""); }}
+                                  className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-[var(--color-surface-container)] transition-colors text-[var(--color-on-surface-variant)]/40 hover:text-[var(--color-on-surface-variant)]"
+                                >
+                                  <Icon name="close" size={13} />
+                                </button>
+                              </div>
+                              <div className="px-4 pb-3 pt-2">
+                                <textarea
+                                  autoFocus
+                                  placeholder="Escribe un mensaje para el destinatario..."
+                                  value={message}
+                                  onChange={(e) => setMessage(e.target.value.slice(0, 100))}
+                                  disabled={isSending}
+                                  rows={2}
+                                  className={`w-full px-3.5 py-2 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/30 resize-none ${
+                                    message.length >= 100
+                                      ? "border-[var(--color-error)]/45 focus:border-[var(--color-error)]"
+                                      : "border-[var(--color-outline-variant)]/40 focus:border-[var(--color-primary)]"
+                                  }`}
+                                  style={{ background: "var(--color-surface-container-lowest)" }}
+                                />
+                                <div className="flex items-center justify-between mt-1.5 px-0.5 gap-2">
+                                  {message.length >= 100 ? (
+                                    <motion.p
+                                      initial={{ opacity: 0, y: -2 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      className="flex items-center gap-1 text-[10.5px] font-inter font-medium text-[var(--color-error)] min-w-0"
+                                    >
+                                      <Icon name="error_outline" size={11} className="flex-shrink-0" />
+                                      <span className="truncate">Has alcanzado el máximo de caracteres</span>
+                                    </motion.p>
+                                  ) : (
+                                    <span />
+                                  )}
+                                  <p className={`text-[10px] font-inter font-medium tabular-nums flex-shrink-0 ${
+                                    message.length >= 100
+                                      ? "text-[var(--color-error)]"
+                                      : "text-[var(--color-on-surface-variant)]/35"
+                                  }`}>
+                                    {message.length}/100
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Continuar CTA — primary brand */}
+                        <button
+                          onClick={() => goToStep(4, 1)}
+                          disabled={
+                            !amount ||
+                            parseFloat(amount.replace(",", ".")) <= 0 ||
+                            parseFloat(amount.replace(",", ".")) > totalBalance
+                          }
+                          className="w-full h-[52px] rounded-[14px] flex items-center justify-center gap-2 text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none cursor-pointer mt-2"
+                          style={{
+                            background: "linear-gradient(135deg, #003ec7 0%, #0052ff 100%)",
+                            boxShadow: "0 6px 16px -4px rgba(0,62,199,0.40), 0 2px 4px rgba(0,62,199,0.18), inset 0 1px 0 rgba(255,255,255,0.18)",
+                          }}
+                        >
+                          <span className="font-inter font-semibold text-[14px] tracking-[0.01em]">Continuar</span>
+                          <Icon name="arrow_forward" size={16} className="opacity-95" />
+                        </button>
+                      </motion.div>
+                    )}
+
+                    {/* ─── Step 4: Revisar + confirmar ─── */}
+                    {step === 4 && beneficiary && (() => {
+                      const amountNum = parseFloat(amount.replace(",", ".")) || 0;
+                      return (
                         <motion.div
-                          initial={{ opacity: 0, y: -6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] bg-[var(--color-error)]/8 border border-[var(--color-error)]/15 text-[var(--color-error)] text-[11.5px] font-inter font-medium"
+                          key="user-step-review"
+                          custom={direction}
+                          variants={slideVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          transition={{ duration: 0.26, ease: [0.25, 0.1, 0.25, 1] }}
+                          className="space-y-4"
                         >
-                          <Icon name="warning" size={14} />
-                          Saldo insuficiente.
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
+                          {/* Title */}
+                          <div className="space-y-1">
+                            <h1 className="font-manrope font-bold text-[24px] text-[var(--color-on-surface)] leading-tight">
+                              ¿Todo listo?
+                            </h1>
+                            <p className="text-[13px] font-inter text-[var(--color-on-surface-variant)]/55">
+                              Revisa los datos antes de confirmar el envío.
+                            </p>
+                          </div>
 
-                  {/* ── Concepto (collapsible) ── */}
-                  <AnimatePresence mode="wait">
-                    {!showMessage ? (
-                      <motion.button
-                        key="trigger"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setShowMessage(true)}
-                        className="flex items-center gap-1.5 px-1 py-1 text-[var(--color-on-surface-variant)]/50 hover:text-[var(--color-primary)] transition-colors"
-                      >
-                        <Icon name="add" size={14} />
-                        <span className="font-inter text-[12px]">Añadir concepto <span className="opacity-60">(opcional)</span></span>
-                      </motion.button>
-                    ) : (
-                      <motion.div
-                        key="input"
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.18 }}
-                        className="rounded-[16px] overflow-hidden"
-                        style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
-                      >
-                        <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-                          <span className="font-inter font-bold text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]/45">Concepto</span>
-                          <button
-                            onClick={() => { setShowMessage(false); setMessage(""); }}
-                            className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-[var(--color-surface-container)] transition-colors text-[var(--color-on-surface-variant)]/40 hover:text-[var(--color-on-surface-variant)]"
+                          {/* Review hero card — receipt-like layout */}
+                          <div
+                            className="rounded-[24px] overflow-hidden bg-white"
+                            style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 20px -4px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03)" }}
                           >
-                            <Icon name="close" size={13} />
-                          </button>
-                        </div>
-                        <div className="px-4 pb-3 pt-2">
-                          <textarea
-                            autoFocus
-                            placeholder="Escribe un mensaje para el destinatario..."
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value.slice(0, 100))}
-                            disabled={isSending}
-                            rows={2}
-                            className="w-full px-3.5 py-2 rounded-[12px] text-[var(--color-on-surface)] font-inter text-[13px] border border-[var(--color-outline-variant)]/40 focus:border-[var(--color-primary)] focus:outline-none transition-colors placeholder:text-[var(--color-on-surface-variant)]/30 resize-none"
-                            style={{ background: "var(--color-surface-container-lowest)" }}
-                          />
-                          <p className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/30 text-right mt-1">{message.length}/100</p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                            {/* Recipient hero — clickable */}
+                            <button
+                              type="button"
+                              onClick={() => goToStep(2, -1)}
+                              className="w-full flex flex-col items-center gap-2.5 px-6 pt-7 pb-5 relative cursor-pointer transition-colors hover:bg-[rgba(0,62,199,0.025)] group"
+                            >
+                              <span
+                                className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-on-surface-variant)]/30 group-hover:text-[var(--color-primary)] group-hover:bg-[rgba(0,62,199,0.08)] transition-all"
+                                aria-label="Editar destinatario"
+                              >
+                                <Icon name="edit" size={14} />
+                              </span>
+                              <div
+                                className="w-14 h-14 rounded-full flex items-center justify-center font-manrope font-bold text-white text-[20px]"
+                                style={{ background: "linear-gradient(135deg, #003ec7 0%, #0052ff 100%)", boxShadow: "0 4px 14px -2px rgba(0,62,199,0.35)" }}
+                              >
+                                {beneficiary.name?.[0] ?? "?"}
+                              </div>
+                              <div className="text-center">
+                                <p className="font-manrope font-bold text-[16px] text-[var(--color-on-surface)] leading-tight">
+                                  {beneficiary.name}
+                                </p>
+                                <p className="text-[12px] font-inter text-[var(--color-on-surface-variant)]/60 mt-0.5">
+                                  {beneficiary.alias ? `@${beneficiary.alias}` : "Usuario de Remita GCS"}
+                                </p>
+                              </div>
+                            </button>
 
-                  {/* ── Transfer summary ── */}
-                  <AnimatePresence>
-                    {beneficiary && amount && parseFloat(amount.replace(",", ".")) > 0 && parseFloat(amount.replace(",", ".")) <= totalBalance && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                        className="flex items-center justify-between px-4 py-3 rounded-[16px]"
-                        style={{ background: "rgba(0,62,199,0.05)", border: "1px solid rgba(0,62,199,0.10)" }}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center font-manrope font-bold text-white text-[13px] flex-shrink-0">
-                            {beneficiary.name?.[0] ?? "?"}
-                          </div>
-                          <div>
-                            <p className="font-manrope font-bold text-[var(--color-on-surface)] text-[13px]">{beneficiary.name}</p>
-                            <p className="text-[10px] font-inter text-[var(--color-on-surface-variant)]/50">Recibirá al instante</p>
-                          </div>
-                        </div>
-                        <p className="font-manrope font-bold text-[20px]" style={{ color: "var(--color-primary)" }}>
-                          {formatCurrency(parseFloat(amount.replace(",", ".")))}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                            {/* Amount hero — clickable */}
+                            <button
+                              type="button"
+                              onClick={() => goToStep(3, -1)}
+                              className="w-full flex flex-col items-center gap-1 px-6 py-5 relative cursor-pointer transition-colors hover:bg-[rgba(0,62,199,0.025)] group"
+                              style={{ borderTop: "1px dashed rgba(0,0,0,0.08)" }}
+                            >
+                              <span
+                                className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-on-surface-variant)]/30 group-hover:text-[var(--color-primary)] group-hover:bg-[rgba(0,62,199,0.08)] transition-all"
+                                aria-label="Editar importe"
+                              >
+                                <Icon name="edit" size={14} />
+                              </span>
+                              <span className="font-manrope font-extrabold text-[40px] text-[var(--color-on-surface)] leading-none tracking-[-0.02em]">
+                                {formatCurrency(amountNum)}
+                              </span>
+                              <span className="text-[10px] font-inter font-bold uppercase tracking-[0.2em] text-[var(--color-on-surface-variant)]/45 mt-1">
+                                Envías
+                              </span>
+                            </button>
 
-                  {/* ── Transfer CTA ── */}
-                  <div className="mt-8">
-                  <button
-                    onClick={handleSendConfirm}
-                    disabled={
-                      !phone || phone.length < 9 || !beneficiary ||
-                      !amount || parseFloat(amount.replace(",", ".")) <= 0 ||
-                      parseFloat(amount.replace(",", ".")) > totalBalance ||
-                      isSending
-                    }
-                    className="w-full h-[64px] rounded-full font-inter font-bold text-[10.5px] uppercase tracking-[0.24em] text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-45 disabled:pointer-events-none flex items-center justify-center gap-2"
-                    style={{
-                      background: "linear-gradient(145deg, #d05200 0%, #e06000 55%, #bc4800 100%)",
-                      boxShadow: "0 5px 18px rgba(188,72,0,0.50), 0 2px 5px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.22)",
-                    }}
-                  >
-                    {isSending ? "Procesando..." : "TRANSFERIR FONDOS"}
-                  </button>
-                  </div>
+                            {/* Concepto — clickable, only if provided */}
+                            {message && (
+                              <button
+                                type="button"
+                                onClick={() => goToStep(3, -1)}
+                                className="w-full flex items-center gap-2.5 px-5 py-3.5 cursor-pointer transition-colors hover:bg-[rgba(0,62,199,0.025)] group text-left"
+                                style={{ borderTop: "1px dashed rgba(0,0,0,0.08)" }}
+                              >
+                                <Icon name="chat_bubble_outline" size={13} className="text-[var(--color-on-surface-variant)]/45 flex-shrink-0" />
+                                <span className="text-[12.5px] font-inter text-[var(--color-on-surface)]/85 flex-1 truncate">
+                                  {message}
+                                </span>
+                                <span
+                                  className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-on-surface-variant)]/30 group-hover:text-[var(--color-primary)] group-hover:bg-[rgba(0,62,199,0.08)] transition-all flex-shrink-0"
+                                  aria-label="Editar concepto"
+                                >
+                                  <Icon name="edit" size={14} />
+                                </span>
+                              </button>
+                            )}
+
+                            {/* Read-only details — Comisión + Llegada */}
+                            <div
+                              className="grid grid-cols-2 px-5 py-3.5 gap-4"
+                              style={{ borderTop: "1px solid rgba(0,0,0,0.05)", background: "rgba(0,0,0,0.015)" }}
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[10.5px] font-inter font-medium uppercase tracking-[0.12em] text-[var(--color-on-surface-variant)]/45">Comisión</span>
+                                <span className="font-manrope font-bold text-[13px] text-[var(--color-success-text)]">Gratis</span>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[10.5px] font-inter font-medium uppercase tracking-[0.12em] text-[var(--color-on-surface-variant)]/45">Llegada</span>
+                                <div className="flex items-center gap-1">
+                                  <Icon name="bolt" size={12} className="text-[var(--color-primary)]" />
+                                  <span className="font-manrope font-bold text-[13px] text-[var(--color-on-surface)]">Instantáneo</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Saldo después */}
+                          <p className="text-[11.5px] font-inter text-[var(--color-on-surface-variant)]/55 text-center px-2">
+                            Tu saldo después: <span className="font-semibold text-[var(--color-on-surface)]/75">{formatCurrency(Math.max(0, totalBalance - amountNum))}</span>
+                          </p>
+
+                          {/* Hero confirm CTA — invitante con shimmer */}
+                          <motion.button
+                            onClick={handleSendConfirm}
+                            disabled={
+                              isSending ||
+                              submitted ||
+                              amountNum <= 0 ||
+                              amountNum > totalBalance
+                            }
+                            whileHover={{ y: -1.5 }}
+                            whileTap={{ scale: 0.99 }}
+                            transition={{ type: "spring", stiffness: 380, damping: 26 }}
+                            className="relative w-full h-[64px] rounded-[18px] overflow-hidden cursor-pointer disabled:opacity-50 disabled:pointer-events-none mt-2 group"
+                            style={{
+                              background: "linear-gradient(120deg, #003ec7 0%, #0052ff 50%, #003ec7 100%)",
+                              backgroundSize: "200% 100%",
+                              boxShadow: "0 12px 28px -6px rgba(0,62,199,0.45), 0 4px 12px rgba(0,62,199,0.20), inset 0 1px 0 rgba(255,255,255,0.18)",
+                            }}
+                          >
+                            {/* Shimmer sweep */}
+                            <motion.div
+                              className="absolute inset-y-0 w-1/3 pointer-events-none"
+                              animate={{ x: ["-150%", "350%"] }}
+                              transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.6 }}
+                              style={{
+                                background: "linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)",
+                              }}
+                            />
+                            {/* Content */}
+                            <div className="relative h-full flex items-center justify-center gap-2.5 px-5 text-white">
+                              <span className="font-inter font-semibold text-[15px] tracking-[0.01em] leading-none">
+                                {isSending ? "Enviando…" : "Enviar"}
+                              </span>
+                              <motion.span
+                                className="inline-flex items-center leading-none"
+                                animate={{ x: [0, 3, 0] }}
+                                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                              >
+                                <Icon name="arrow_forward" size={18} className="text-white leading-none" />
+                              </motion.span>
+                            </div>
+                          </motion.button>
+                        </motion.div>
+                      );
+                    })()}
+
+                  </AnimatePresence>
                 </div>
 
-                {/* ══ RIGHT: Support panel (desktop only, sticky) ══ */}
+                {/* ══ RIGHT: Sticky on-chain benefits panel (desktop only) ══ */}
                 <div className="hidden lg:flex lg:flex-col lg:gap-4 lg:sticky lg:top-[96px]">
-
-                  {/* Frecuentes card */}
-                  <div
-                    className="rounded-[22px] p-5 space-y-4"
-                    style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
-                  >
-                    <p className="font-inter font-bold text-[11px] uppercase tracking-widest text-[var(--color-on-surface-variant)]/50">Frecuentes</p>
-
-                    <div className="flex items-start gap-3">
-                      {frequentContacts.length > 0 ? (
-                        frequentContacts.map((contact, idx) => {
-                          const palette = ["#003ec7", "#bc4800", "#0d9488"];
-                          const color = palette[idx % palette.length];
-                          return (
-                            <button
-                              key={contact.id}
-                              onClick={() => selectFrequentContact(contact)}
-                              className="flex flex-col items-center gap-1.5 group transition-all flex-1"
-                            >
-                              <div
-                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-manrope font-bold text-[14px] transition-transform group-hover:scale-105 ring-2 ring-transparent group-hover:ring-[var(--color-primary)]/20"
-                                style={{ background: color }}
-                              >
-                                {getInitials(contact.name, contact.surname)}
-                              </div>
-                              <p className="font-inter text-[11px] font-medium text-[var(--color-on-surface)] leading-tight truncate w-full text-center">
-                                {contact.name}
-                              </p>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <p className="text-center w-full text-xs text-[var(--color-on-surface-variant)]/50 py-4">
-                          Aún no has enviado dinero
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* On-chain benefits card */}
                   <div
                     className="rounded-[18px] overflow-hidden"
                     style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
                   >
-                    {/* Header */}
                     <div
                       className="px-4 py-3.5 flex items-center gap-3"
                       style={{ background: "rgba(0,62,199,0.04)", borderBottom: "1px solid rgba(0,62,199,0.08)" }}
@@ -1019,7 +1577,6 @@ export default function SendPage() {
                       </p>
                     </div>
 
-                    {/* Features */}
                     <div className="divide-y divide-[rgba(0,0,0,0.05)]">
                       {[
                         {
@@ -1112,7 +1669,7 @@ export default function SendPage() {
 
                 {/* Quick buttons */}
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {QUICK_AMOUNTS.map((quickAmount) => (
+                  {quickAmounts.map((quickAmount) => (
                     <button
                       key={quickAmount}
                       onClick={() => setAmount(String(quickAmount))}
@@ -1147,7 +1704,7 @@ export default function SendPage() {
               </div>
 
               <button
-                onClick={() => setStep(4)}
+                onClick={() => goToStep(4, 1)}
                 disabled={
                   !amount ||
                   parseFloat(amount.replace(",", ".")) <= 0 ||
@@ -1211,7 +1768,11 @@ export default function SendPage() {
             <TransferProcessingScreen
               amount={parseFloat(amount.replace(",", ".")) || 0}
               recipientName={beneficiary?.name || phone}
-              recipientIdentifier={alias ? `@${alias}` : `${countryCode} ${phone}`}
+              recipientIdentifier={
+                activeField === "alias" || beneficiary?.alias
+                  ? `@${beneficiary?.alias ?? alias}`
+                  : `${PHONE_COUNTRIES[country].dialPrefix} ${formatPhoneDisplay(phone, country)}`
+              }
               senderName={senderName}
               onComplete={() => router.push("/dashboard")}
             />
@@ -1273,7 +1834,7 @@ export default function SendPage() {
               <div className="space-y-3 pt-4">
                 <button
                   onClick={() => {
-                    setStep(3);
+                    goToStep(4, -1);
                     setErrorMessage("");
                   }}
                   className="w-full px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-manrope font-bold transition-all hover:opacity-90"

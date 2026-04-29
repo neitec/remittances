@@ -68,11 +68,11 @@ export interface User {
   phone: string;
   name: string;
   surname: string;
-  alias?: string | null;
+  alias: string;
   country: string;
 }
 
-export interface Beneficiary extends User {}
+export type Beneficiary = User;
 
 export interface DepositInstruction {
   payment_rail: string; // "sepa"
